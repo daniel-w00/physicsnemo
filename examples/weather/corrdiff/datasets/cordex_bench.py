@@ -14,6 +14,10 @@ import h5py
 import datetime
 import cftime
 
+# import sys
+# sys.path.append("/Users/simon/Code/physicsnemo/examples/weather/corrdiff/")
+
+
 from datasets.base import ChannelMetadata, DownscalingDataset
 
 
@@ -71,6 +75,8 @@ class CordexBenchDataset(DownscalingDataset):
         # Load static data
         self.static_variables = self.prepare_cordexbench_static_data()
         self.static_data = self.static_variables['orog']
+        self.lat = self.static_variables['lat']
+        self.lon = self.static_variables['lon']
         
         # Load and prepare data
         self._load_data()
@@ -459,7 +465,7 @@ class CordexBenchDataset(DownscalingDataset):
     def __getitem__(self, idx):
         """Get a single sample - return (target, predictor) to match NorwayDatasetH5 pattern."""
         # Get predictor data for this time step
-        predictor_sample = self.predictors[self.predictor_vars].isel(time=idx)
+        predictor_sample = self.predictors[self.predictor_vars].isel(time=idx).compute()
         predictor_array = predictor_sample.to_array().values.astype(np.float32)  # Shape: (variables, spatial_dim1, spatial_dim2)
         
         # Get target data for this time step - multiple target variables
@@ -547,8 +553,10 @@ class CordexBenchDataset(DownscalingDataset):
     def time(self):
         """Get time values from the dataset."""
         from physicsnemo.utils.diffusion import convert_datetime_to_cftime
-        return [convert_datetime_to_cftime(t) for t in self.predictors.time.values]
-    
+
+        py_datetimes = pd.to_datetime(self.predictors.time.values).to_pydatetime()
+        return [convert_datetime_to_cftime(t) for t in py_datetimes]
+
     def prepare_cordexbench_static_data(self):
         """Prepare static variables for CordexBench dataset."""
         # Look for Static_fields.nc in the domain directory
@@ -614,19 +622,24 @@ if __name__ == '__main__':
     evaluation_types = ['PP', 'imperfect', 'transferability']
     stages = ['train', 'val', 'test']
     gcms = ['EC-Earth3', 'ACCESS-CM2', 'CNRM', 'MPI']  # Test multiple GCMs
-
     
 
     #Example usage:
     dataset = CordexBenchDataset(
-        data_path="/Users/simon/Datasets/CordexBench",
+        data_path="/Users/simon/Datasets/CordexBench/ALPS_domain",
         domain="ALPS", 
         evaluation_type="PP",
         gcm="MPI",
+        stage='val',
+        output_variables=['pr', 'tasmax'],
+        invariant_variables=['Orog'],
     )
 
     print(f"Dataset length: {len(dataset)}")
-    print(dataset[0])
+    for i in tqdm(range(len(dataset))):
+        target, predictor = dataset[i]
+        
+        
 
 
 
