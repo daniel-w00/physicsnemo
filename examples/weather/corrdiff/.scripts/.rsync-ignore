@@ -1,0 +1,28 @@
+/.scripts/
+
+
+# Ausgabe-Ordner (Nie löschen!)
+results/
+logs/
+localdata/
+output/
+
+/checkpoints_regression/
+/tensorboard/
+
+# Python-Kram
+*.pyc
+__pycache__/
+*.egg-info/
+.venv/
+venv/
+
+# PyCharm/VSCode-Settings
+.idea/
+.vscode/
+
+# Sonstiges
+.git/
+*.pth
+*.pt
+*.log
