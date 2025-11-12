@@ -118,9 +118,11 @@ def main(cfg: DictConfig) -> None:
         writer = SummaryWriter(log_dir="tensorboard")
     logger = PythonLogger("main")  # General python logger
     logger0 = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
+
+    ### Hier wandb ### resume muss manuell in code gesetzt werden
     initialize_wandb(
-        project="Modulus-Launch",
-        entity="Modulus",
+        project="corrdiff-test",
+        entity="daniel-w-uni",
         name=f"CorrDiff-Training-{HydraConfig.get().job.name}",
         group="CorrDiff-DDP-Group",
         mode=cfg.wandb.mode,
