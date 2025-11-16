@@ -45,9 +45,9 @@ defaults:
 # Modify or add below parameters that should be passed as argument to the
 # user-defined dataset class.
 dataset:
-    data_path: ./data/hrrr_mini/hrrr_mini_train.nc
+    data_path: /data/hrrr_mini_train.nc
     # Path to .nc data file
-    stats_path: ./data/hrrr_mini/stats.json
+    stats_path: /data/stats.json
     # Path to json stats file
 
 # Generation parameters to specialize
@@ -61,9 +61,9 @@ generation:
     # List[str], time stamps in ISO 8601 format. Replace and list desired target
     # time stamps.
     io:
-        res_ckpt_filename: <diffusion_checkpoint.mdlus> 
+        res_ckpt_filename: /checkpoints/checkpoint_diffusion/EDMPrecondSuperResolution.0.8000000.mdlus
         # Path to checkpoint file for the diffusion model  
-        reg_ckpt_filename: <regression_checkpoint.mdlus>
+        reg_ckpt_filename: /checkpoints/regression/UNet.0.2000128.mdlus
         # Path to checkpoint filename for the mean predictor model
 
 # Parameters for wandb logging

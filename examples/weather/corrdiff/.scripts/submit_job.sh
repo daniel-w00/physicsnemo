@@ -1,22 +1,63 @@
 #!/bin/bash
-echo "--- 🚀 Starte Hard-coded Job auf Cluster... ---"
+echo "--- 🚀 Starte Job auf Cluster... ---"
 
 # --- Deine Cluster-Variablen ---
 CLUSTER_USER="s373395"
 CLUSTER_ADRESSE="julia2.hpc.uni-wuerzburg.de"
 CLUSTER_PFAD="~/bjerknes"
-SLURM_SCRIPT_PATH="jobs/julia-d.slurm"
+SLURM_SCRIPT_DIR="jobs" # Nur das Verzeichnis, der Dateiname kommt variabel
 
-# --- HIER IST DEIN HARD-CODED CONFIG-NAME (KORRIGIERT: OHNE .yaml) ---
-="first_config_training_hrrr_mini_diffusion"
+# --- ⚠️ HINWEIS ZU PYCHARM ---
+# Wenn du das Skript in PyCharm OHNE Argumente startest,
+# wird es bei 'read' hängenbleiben, da die Konsole
+# dort oft keine interaktiven Eingaben erlaubt!
+#
+# EMPFEHLUNG: Trage die Argumente in PyCharm in der
+# "Run Configuration" -> "Program arguments" ein.
+# z.B.: julia-d.slurm first_config_training
+# ---
+
+
+# --- SCHRITT 0: SLURM-SKRIPT-NAME (Hybrid-Ansatz) ---
+if [ -n "$1" ]; then
+    # Fall 1: Argument 1 wurde übergeben
+    SLURM_SCRIPT_NAME="$1"
+    echo "--- Info: Verwende Slurm-Skript aus Argument 1: $SLURM_SCRIPT_NAME"
+else
+    # Fall 2: Argument 1 fehlt, frage interaktiv
+    echo "--- EINGABE ERFORDERLICH ---"
+    read -p "Name des Slurm-Skripts (z.B. julia-d.slurm): " SLURM_SCRIPT_NAME
+fi
+
+
+# --- SCHRITT 0: CONFIG-NAME (Hybrid-Ansatz) ---
+if [ -n "$2" ]; then
+    # Fall 1: Argument 2 wurde übergeben
+    CONFIG_NAME="$2"
+    echo "--- Info: Verwende Config-Name aus Argument 2: $CONFIG_NAME"
+else
+    # Fall 2: Argument 2 fehlt, frage interaktiv
+    if [ -z "$1" ]; then
+        # Nur anzeigen, wenn wir schon im interaktiven Modus sind
+        echo "--- EINGABE ERFORDERLICH ---"
+    fi
+    read -p "Name der Config (z.B. first_config_...): " CONFIG_NAME
+fi
+
+# --- Gültigkeitsprüfung ---
+if [ -z "$SLURM_SCRIPT_NAME" ] || [ -z "$CONFIG_NAME" ]; then
+    echo "--- ❌ FEHLER: Slurm-Skript oder Config-Name sind leer! ---"
+    exit 1
+fi
 # ---------------------------------------------------------------------
 
-echo "--- Starte Slurm-Job mit Config: $CONFIG_NAME ---"
+echo ""
+echo "--- Starte Slurm-Job: $SLURM_SCRIPT_NAME mit Config: $CONFIG_NAME ---"
 
 # --- SCHRITT 1: Job starten und Job-ID einfangen ---
+# Die Variablen werden hier kombiniert:
+SBATCH_OUTPUT=$(ssh "$CLUSTER_USER@$CLUSTER_ADRESSE" "cd $CLUSTER_PFAD && sbatch $SLURM_SCRIPT_DIR/$SLURM_SCRIPT_NAME $CONFIG_NAME")
 
-SBATCH_OUTPUT=$(ssh "$CLUSTER_USER@$CLUSTER_ADRESSE" "cd $CLUSTER_PFAD && sbatch $SLURM_SCRIPT_PATH $CONFIG_NAME")
-CONFIG_NAME
 if [[ $SBATCH_OUTPUT != "Submitted batch job "* ]]; then
     echo "--- ❌ FEHLER: Job-Einreichung fehlgeschlagen! ---"
     echo "Cluster-Antwort: $SBATCH_OUTPUT"
