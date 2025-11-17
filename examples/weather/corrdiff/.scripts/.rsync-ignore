@@ -6,6 +6,8 @@ results/
 logs/
 localdata/
 output/
+/wandb/
+/output/
 
 /checkpoints_regression/
 /tensorboard/

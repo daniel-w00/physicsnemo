@@ -3,7 +3,7 @@
 #SBATCH -c 16
 #SBATCH -p test
 #SBATCH --gres=gpu:1
-#SBATCH --mail-type=ALL
+#SBATCH --mail-type=END,FAIL
 #SBATCH --mail-user=daniel.wilhelm@stud-mail.uni-wuerzburg.de
 #SBATCH --output=output/job-%j.out
 

@@ -19,7 +19,7 @@ hydra:
           chdir: false
           name: generate_hrrr_mini
     run:
-          dir: ./outputs/${hydra:job.name}
+          dir: ./output/${hydra:job.name}
     searchpath:
           - pkg://conf/base # Do not modify
 
@@ -61,10 +61,12 @@ generation:
     # List[str], time stamps in ISO 8601 format. Replace and list desired target
     # time stamps.
     io:
-        res_ckpt_filename: /checkpoints/checkpoint_diffusion/EDMPrecondSuperResolution.0.8000000.mdlus
+        res_ckpt_filename: /checkpoints/checkpoints_diffusion/EDMPrecondSuperResolution.0.8000000.mdlus
         # Path to checkpoint file for the diffusion model  
         reg_ckpt_filename: /checkpoints/regression/UNet.0.2000128.mdlus
         # Path to checkpoint filename for the mean predictor model
+        ##selbst hinzugefügt  überschreibt corrdiff_output.n
+        output_filename: "output/hrrr_mini_generierte_daten.nc"
 
 # Parameters for wandb logging
 wandb:
