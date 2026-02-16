@@ -87,6 +87,8 @@ class HRRRMiniDataset(DownscalingDataset):
     def __len__(self):
         return self.input.shape[0]
 
+
+### achtung
     def longitude(self) -> np.ndarray:
         """Get longitude values from the dataset."""
         return np.full(self.img_shape, np.nan)
