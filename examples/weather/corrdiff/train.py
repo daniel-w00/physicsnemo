@@ -116,19 +116,25 @@ def main(cfg: DictConfig) -> None:
     # Initialize loggers
     if dist.rank == 0:
         writer = SummaryWriter(log_dir="tensorboard")
+
+        ### Hier wandb ### resume muss manuell in code gesetzt werden
+        ## für multi gpu - nur rank 0 loggt, train loss undso muss dann in rank 0
+        #war früher außerhalb dieses ifs
+        initialize_wandb(
+            project="corrdiff-test",
+            entity="daniel-w-uni",
+            name=f"CorrDiff-Training-{HydraConfig.get().job.name}",
+            group="CorrDiff-DDP-Group",
+            mode=cfg.wandb.mode,
+            config=OmegaConf.to_container(cfg),
+            results_dir=cfg.wandb.results_dir,
+        )
+
+
     logger = PythonLogger("main")  # General python logger
     logger0 = RankZeroLoggingWrapper(logger, dist)  # Rank 0 logger
 
-    ### Hier wandb ### resume muss manuell in code gesetzt werden
-    initialize_wandb(
-        project="corrdiff-test",
-        entity="daniel-w-uni",
-        name=f"CorrDiff-Training-{HydraConfig.get().job.name}",
-        group="CorrDiff-DDP-Group",
-        mode=cfg.wandb.mode,
-        config=OmegaConf.to_container(cfg),
-        results_dir=cfg.wandb.results_dir,
-    )
+
 
     # Resolve and parse configs
     OmegaConf.resolve(cfg)
