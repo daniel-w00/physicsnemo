@@ -11,4 +11,4 @@ From: nvcr.io/nvidia/physicsnemo/physicsnemo:25.06
    pip install jsonargparse[signatures] lightning matplotlib xarray dask plotly geopandas cartopy h5py basicsr einops diffusers cdo 
 
 %labels
-   Author SimonH
+   Author Daniel-SimonH
