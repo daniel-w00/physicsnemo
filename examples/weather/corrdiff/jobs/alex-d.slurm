@@ -9,6 +9,9 @@
 #SBATCH --mail-user "daniel.wilhelm@stud-mail.uni-wuerzburg.de"
 #SBATCH --constraint=a100_80
 
+# --- GPU config: set to 1 or 4 ---
+NUM_GPUS=4
+
 set -x  # Zeigt jeden Befehl an, bevor er ausgeführt wird
 
 # Set up environment
@@ -24,24 +27,26 @@ echo ${CUDA_VISIBLE_DEVICES}
 
 source $HOME/.job_secrets
 
-#/anvme/workspace/b214cb18-ws-daniel-cwb/
+DATASET_SRC=/anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset
+COPY_TO_TMPDIR=false  # set to false to use dataset directly from source
 
-# Copy dataset to fast local storage
- echo "Copying dataset to $TMPDIR..."
- START=$(date +%s)
- cp -r /anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset $TMPDIR/
- END=$(date +%s)
- echo "Copy done in $((END - START)) seconds."
+if [ "$COPY_TO_TMPDIR" = true ]; then
+  echo "Copying dataset to $TMPDIR..."
+  START=$(date +%s)
+  cp -r $DATASET_SRC $TMPDIR/
+  END=$(date +%s)
+  echo "Copy done in $((END - START)) seconds."
+  DATA_DIR=$TMPDIR/cwa_dataset
+else
+  echo "Using dataset directly from $DATASET_SRC"
+  DATA_DIR=$DATASET_SRC
+fi
 
 export HYDRA_FULL_ERROR=1
 
-#srun apptainer run --nv --bind /anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset:/data/ \
-  #                      --bind $WORK/checkpoints:/checkpoints/ \
-    #                    $HOME/apptainer/corrdiff_10_02.sif python -u  $HOME/corrdiff/train.py --config-name config_training_taiwan_regression-alex
-
-srun apptainer run --nv --bind $TMPDIR/cwa_dataset/:/data/ \
+srun apptainer run --nv --bind $DATA_DIR:/data/ \
                         --bind $WORK/checkpoints:/checkpoints/ \
-                        $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=4  $HOME/corrdiff/train.py --config-name config_training_taiwan_diffusion-alex
+                        $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=$NUM_GPUS  $HOME/corrdiff/train.py --config-name config_training_taiwan_diffusion-alex
 
 
-#srun apptainer run --nv --bind /anvme/workspace/b214cb13-ecodata/downscaling/:/data/ --bind $WORK/checkpoints:/checkpoints/ $WORK/own_corrdiff.sif python -u $HOME/bjerknes/corrdiff/generate.py --config-name 
+#srun apptainer run --nv --bind /anvme/workspace/b214cb13-ecodata/downscaling/:/data/ --bind $WORK/checkpoints:/checkpoints/ $WORK/own_corrdiff.sif python -u $HOME/corrdiff/generate.py --config-name

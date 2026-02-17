@@ -73,9 +73,9 @@ training:
         lr_rampup: 5_000  #10_000_000
         # Rampup for learning rate, in number of samples
 
-        total_batch_size: 256  # normal 256
-        batch_size_per_gpu: 4 #default ist auto , 1 hatte 20% von 80gb
-        #ich glaube batchsizeper gpu * anzahlgpus teilbar totalbatchsize
+        total_batch_size: 240  # normal   # batchsizeper gpu * anzahlgpus teilbar totalbatchsize
+        batch_size_per_gpu: 5 #default ist auto , 1 hatte 20% von 80gb
+
     io:
         regression_checkpoint_path:  /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.1000192.mdlus
         # Path to load the regression checkpoint
@@ -85,6 +85,9 @@ training:
         checkpoint_dir: /checkpoints/taiwan/pure_lr5000
 
 # Additional parameters for validation
+#todo
+#nicht zu oft
+
 validation:
     train: false
     all_times: false    

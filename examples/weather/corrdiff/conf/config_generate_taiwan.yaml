@@ -45,8 +45,8 @@ defaults:
 # Modify or add below parameters that should be passed as argument to the
 # user-defined dataset class.
 dataset:
-    data_path: ./data/2023-01-24-cwb-4years.zarr
-    train: False
+    data_path: /data/cwa_dataset.zarr
+    train: False #todo ?
     all_times: True
 
 
@@ -68,9 +68,10 @@ generation:
     # List[str], time stamps in ISO 8601 format. Replace and list desired target
     # time stamps.
     io:
-        res_ckpt_filename: <diffusion_checkpoint.mdlus> 
+        #falls nur regression flag setzen
+        res_ckpt_filename: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.1000192.mdlus
         # Path to checkpoint file for the diffusion model  
-        reg_ckpt_filename: <regression_checkpoint.mdlus>
+        reg_ckpt_filename: <regression_checkpoint.mdlus> #todo
         # Path to checkpoint filename for the mean predictor model
 
 # Parameters for wandb logging
