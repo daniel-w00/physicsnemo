@@ -826,6 +826,11 @@ def main(cfg: DictConfig) -> None:
                         torch.cuda.reset_peak_memory_stats()
                     logger0.info(" ".join(fields))
 
+                    wandb.log({
+                        "training_loss": average_loss,
+                        "learning_rate": current_lr,
+                    })
+
                 # Save checkpoints
                 if dist.world_size > 1:
                     torch.distributed.barrier()
