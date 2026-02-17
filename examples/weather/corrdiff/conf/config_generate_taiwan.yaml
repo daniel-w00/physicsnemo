@@ -67,11 +67,13 @@ generation:
         - 2021-09-12T12:00:00
     # List[str], time stamps in ISO 8601 format. Replace and list desired target
     # time stamps.
+
+    inference_mode: regression #laut claude für nur regression
     io:
         #falls nur regression flag setzen
-        res_ckpt_filename: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.1000192.mdlus
+        #res_ckpt_filename:
         # Path to checkpoint file for the diffusion model  
-        reg_ckpt_filename: <regression_checkpoint.mdlus> #todo
+        reg_ckpt_filename: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.1000192.mdlus
         # Path to checkpoint filename for the mean predictor model
 
 # Parameters for wandb logging

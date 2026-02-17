@@ -68,12 +68,12 @@ model:
 # Training parameters
 training:
     hp:
-        training_duration:  1_000_000  #200_000_000
+        training_duration:  3_000_000  #200_000_000
         # Training duration based on the number of processed samples
-        lr_rampup: 5_000  #10_000_000
+        lr_rampup: 80_000  #10_000_000
         # Rampup for learning rate, in number of samples
 
-        total_batch_size: 240  # normal   # batchsizeper gpu * anzahlgpus teilbar totalbatchsize
+        total_batch_size: 240  # vorher 256   # batchsizeper gpu * anzahlgpus teilbar totalbatchsize
         batch_size_per_gpu: 5 #default ist auto , 1 hatte 20% von 80gb
 
     io:
@@ -81,13 +81,14 @@ training:
         # Path to load the regression checkpoint
 
         print_progress_freq: 10_000
-        save_n_recent_checkpoints: 5
+        save_n_recent_checkpoints: -1
+        save_checkpoint_freq: 100_000
         checkpoint_dir: /checkpoints/taiwan/pure_lr5000
 
-# Additional parameters for validation
-#todo
-#nicht zu oft
-
+# wenn validation auftaucht dann wird validiert
+#Wenn kein validation:-Block in der Config steht, wird keine Validierung durchgeführt;
+#mit validation: train: false, all_times: false wird automatisch ein Val-Set aus den 2021er-Daten erstellt und regelmäßig der Validation-Loss berechnet.
+#all_times: true deaktiviert den Zeitfilter (alle Daten werden verwendet), train: true wählt statt 2021 alle anderen Jahre.
 validation:
     train: false
     all_times: false    

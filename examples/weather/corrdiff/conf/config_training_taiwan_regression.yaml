@@ -59,19 +59,25 @@ defaults:
 # Modify or add below parameters that should be passed as argument to the
 # user-defined dataset class.
 dataset:
-    data_path: ./data/2023-01-24-cwb-4years.zarr
+    data_path: /data/cwa_dataset.zarr
 
 # Training parameters
 training:
     hp:
-        training_duration: 200000000
+        training_duration: 200_000_000
         # Training duration based on the number of processed samples
-        lr_rampup: 10000000
+        lr_rampup: 10_000_000
         # Rampup for learning rate, in number of samples
+        total_batch_size: 32  # normal 256
+        batch_size_per_gpu: 1 #default ist auto
+    io:
+      print_progress_freq: 10000
+      save_n_recent_checkpoints: 5
+      checkpoint_dir: /checkpoints/taiwan/pure/regression
 
 # Parameters for wandb logging
 wandb:
-    mode: offline
+    mode: online
     # Configure whether to use wandb: "offline", "online", "disabled"
     results_dir: "./wandb"
     # Directory to store wandb results

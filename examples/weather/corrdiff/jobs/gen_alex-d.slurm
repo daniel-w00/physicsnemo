@@ -25,4 +25,4 @@ export HYDRA_FULL_ERROR=1
   #                      ~/apptainer/new_corrdiff.sif python -u ~/corrdiff/generate.py  --config-name config_generate_taiwan
 
 
-srun apptainer run --nv --bind /anvme/workspace/b214cb13-ecodata/downscaling/:/data/ --bind $WORK/checkpoints:/checkpoints/ $WORK/own_corrdiff.sif python -u $HOME/corrdiff/generate.py  --config-name config_generate_taiwan
+srun apptainer run --nv --bind /anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset:/data/ --bind $WORK/checkpoints:/checkpoints/ $HOME/apptainer/corrdiff_10_02.sif python -u $HOME/corrdiff/generate.py  --config-name config_generate_taiwan
