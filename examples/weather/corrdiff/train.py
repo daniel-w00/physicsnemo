@@ -781,6 +781,14 @@ def main(cfg: DictConfig) -> None:
                                         "validation_loss", average_valid_loss, cur_nimg
                                     )
 
+                                    ##slebst hinzugefügt
+                                    wandb.log({
+                                        "validation_loss": average_valid_loss,
+                                        "learning_rate": current_lr,
+                                        "training_loss": average_loss,
+                                        "training_loss_running_mean": average_loss_running_mean
+                                    }, step=cur_nimg)
+
                 if is_time_for_periodic_task(
                     cur_nimg,
                     cfg.training.io.print_progress_freq,
