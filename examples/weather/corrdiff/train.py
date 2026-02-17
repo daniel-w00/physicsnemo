@@ -647,11 +647,6 @@ def main(cfg: DictConfig) -> None:
                         dist.rank,
                         rank_0_only=True,
                     )
-                    if ptt:
-                        # reset running mean of average loss
-                        average_loss_running_mean = 0
-                        n_average_loss_running_mean = 1
-
                     # Update weights.
                     with nvtx.annotate("update weights", color="blue"):
                         lr_rampup = (
@@ -830,6 +825,10 @@ def main(cfg: DictConfig) -> None:
                         "training_loss": average_loss,
                         "learning_rate": current_lr,
                     })
+
+                    # reset running mean of average loss after logging
+                    average_loss_running_mean = 0
+                    n_average_loss_running_mean = 1
 
                 # Save checkpoints
                 if dist.world_size > 1:
