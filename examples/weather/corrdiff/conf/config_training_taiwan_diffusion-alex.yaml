@@ -70,17 +70,17 @@ training:
     hp:
         training_duration:  3_000_000  #200_000_000
         # Training duration based on the number of processed samples
-        lr_rampup: 80_000  #10_000_000
+        lr_rampup: 50_000  #10_000_000
         # Rampup for learning rate, in number of samples
 
-        total_batch_size: 240  # vorher 256   # batchsizeper gpu * anzahlgpus teilbar totalbatchsize
-        batch_size_per_gpu: 5 #default ist auto , 1 hatte 20% von 80gb
+        total_batch_size: 256  # vorher 256   # batchsizeper gpu * anzahlgpus teilbar totalbatchsize
+        batch_size_per_gpu: 4 #default ist auto , 1 hatte 20% von 80gb
 
     io:
         regression_checkpoint_path:  /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.1000192.mdlus
         # Path to load the regression checkpoint
 
-        print_progress_freq: 10_000
+        print_progress_freq: 1_024
         save_n_recent_checkpoints: -1
         save_checkpoint_freq: 100_000
         checkpoint_dir: /checkpoints/taiwan/pure_lr5000
