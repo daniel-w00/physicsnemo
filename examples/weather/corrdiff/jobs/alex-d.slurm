@@ -41,7 +41,7 @@ export HYDRA_FULL_ERROR=1
 
 srun apptainer run --nv --bind $TMPDIR/cwa_dataset/:/data/ \
                         --bind $WORK/checkpoints:/checkpoints/ \
-                        $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=4  $HOME/corrdiff/train.py --config-name config_training_taiwan_regression-alex
+                        $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=4  $HOME/corrdiff/train.py --config-name config_training_taiwan_diffusion-alex
 
 
 #srun apptainer run --nv --bind /anvme/workspace/b214cb13-ecodata/downscaling/:/data/ --bind $WORK/checkpoints:/checkpoints/ $WORK/own_corrdiff.sif python -u $HOME/bjerknes/corrdiff/generate.py --config-name 

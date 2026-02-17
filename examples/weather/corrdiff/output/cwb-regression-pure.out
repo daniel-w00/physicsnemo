@@ -1,0 +1,717 @@
+### Starting TaskPrologue of job 3345085 on a0631 at Mon Feb 16 16:56:26 CET 2026
+Running on cores 0-63 with governor ondemand
+Mon Feb 16 16:56:26 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 590.48.01              Driver Version: 590.48.01      CUDA Version: 13.1     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA A100-SXM4-80GB          On  |   00000000:0E:00.0 Off |                    0 |
+| N/A   36C    P0             59W /  400W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   1  NVIDIA A100-SXM4-80GB          On  |   00000000:13:00.0 Off |                    0 |
+| N/A   36C    P0             63W /  400W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   2  NVIDIA A100-SXM4-80GB          On  |   00000000:49:00.0 Off |                    0 |
+| N/A   36C    P0             64W /  400W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+|   3  NVIDIA A100-SXM4-80GB          On  |   00000000:4F:00.0 Off |                    0 |
+| N/A   38C    P0             66W /  400W |       0MiB /  81920MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+### Finished TaskPrologue
+
++ export http_proxy=http://proxy:80
++ http_proxy=http://proxy:80
++ export https_proxy=http://proxy:80
++ https_proxy=http://proxy:80
++ export WANDB__SERVICE_WAIT=300
++ WANDB__SERVICE_WAIT=300
++ export APPTAINERENV_CUDA_VISIBLE_DEVICES=0,1,2,3
++ APPTAINERENV_CUDA_VISIBLE_DEVICES=0,1,2,3
++ echo 0,1,2,3
+0,1,2,3
++ source /home/hpc/b214cb/b214cb18/.job_secrets
+++ export WANDB_API_KEY=43f79606828fef01ef866530d582c2580a7dccf3
+++ WANDB_API_KEY=43f79606828fef01ef866530d582c2580a7dccf3
++ echo 'Copying dataset to /tmp/3345085.alex...'
+Copying dataset to /tmp/3345085.alex...
+++ date +%s
++ START=1771257387
++ cp -r /anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset /tmp/3345085.alex/
+++ date +%s
++ END=1771259574
++ echo 'Copy done in 2187 seconds.'
+Copy done in 2187 seconds.
++ export HYDRA_FULL_ERROR=1
++ HYDRA_FULL_ERROR=1
++ srun apptainer run --nv --bind /tmp/3345085.alex/cwa_dataset/:/data/ --bind /home/atuin/b214cb/b214cb18/checkpoints:/checkpoints/ /home/hpc/b214cb/b214cb18/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=4 /home/hpc/b214cb/b214cb18/corrdiff/train.py --config-name config_training_taiwan_regression-alex
+
+=============
+== PyTorch ==
+=============
+
+NVIDIA Release 25.01 (build 134983853)
+PyTorch Version 2.6.0a0+ecf3bae
+Container image Copyright (c) 2025, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Copyright (c) 2014-2024 Facebook Inc.
+Copyright (c) 2011-2014 Idiap Research Institute (Ronan Collobert)
+Copyright (c) 2012-2014 Deepmind Technologies    (Koray Kavukcuoglu)
+Copyright (c) 2011-2012 NEC Laboratories America (Koray Kavukcuoglu)
+Copyright (c) 2011-2013 NYU                      (Clement Farabet)
+Copyright (c) 2006-2010 NEC Laboratories America (Ronan Collobert, Leon Bottou, Iain Melvin, Jason Weston)
+Copyright (c) 2006      Idiap Research Institute (Samy Bengio)
+Copyright (c) 2001-2004 Idiap Research Institute (Ronan Collobert, Samy Bengio, Johnny Mariethoz)
+Copyright (c) 2015      Google Inc.
+Copyright (c) 2015      Yangqing Jia
+Copyright (c) 2013-2016 The Caffe contributors
+All rights reserved.
+
+Various files include modifications (c) NVIDIA CORPORATION & AFFILIATES.  All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+NOTE: Mellanox network driver detected, but NVIDIA peer memory driver not
+      detected.  Multi-node communication performance may be reduced.
+
+W0216 17:33:01.831000 2282274 torch/distributed/run.py:792] 
+W0216 17:33:01.831000 2282274 torch/distributed/run.py:792] *****************************************
+W0216 17:33:01.831000 2282274 torch/distributed/run.py:792] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W0216 17:33:01.831000 2282274 torch/distributed/run.py:792] *****************************************
+/usr/local/lib/python3.12/dist-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/usr/local/lib/python3.12/dist-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/usr/local/lib/python3.12/dist-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/usr/local/lib/python3.12/dist-packages/pandas/core/arrays/masked.py:60: UserWarning: Pandas requires version '1.3.6' or newer of 'bottleneck' (version '1.3.5' currently installed).
+  from pandas.core import (
+/home/hpc/b214cb/b214cb18/corrdiff/train.py:44: ExperimentalFeatureWarning: You are importing from 'physicsnemo.experimental'. The APIs in this namespace are experimental, under active development, and may change without notice. Expect possible back-compatibility breaking changes and only partial test coverage.
+  from physicsnemo.experimental.metrics.diffusion import tEDMResidualLoss
+/home/hpc/b214cb/b214cb18/corrdiff/train.py:44: ExperimentalFeatureWarning: You are importing from 'physicsnemo.experimental'. The APIs in this namespace are experimental, under active development, and may change without notice. Expect possible back-compatibility breaking changes and only partial test coverage.
+  from physicsnemo.experimental.metrics.diffusion import tEDMResidualLoss
+/home/hpc/b214cb/b214cb18/corrdiff/train.py:44: ExperimentalFeatureWarning: You are importing from 'physicsnemo.experimental'. The APIs in this namespace are experimental, under active development, and may change without notice. Expect possible back-compatibility breaking changes and only partial test coverage.
+  from physicsnemo.experimental.metrics.diffusion import tEDMResidualLoss
+/home/hpc/b214cb/b214cb18/corrdiff/train.py:44: ExperimentalFeatureWarning: You are importing from 'physicsnemo.experimental'. The APIs in this namespace are experimental, under active development, and may change without notice. Expect possible back-compatibility breaking changes and only partial test coverage.
+  from physicsnemo.experimental.metrics.diffusion import tEDMResidualLoss
+/usr/local/lib/python3.12/dist-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'config_training_taiwan_regression-alex': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+/usr/local/lib/python3.12/dist-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'config_training_taiwan_regression-alex': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+/usr/local/lib/python3.12/dist-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'config_training_taiwan_regression-alex': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+/usr/local/lib/python3.12/dist-packages/hydra/_internal/defaults_list.py:251: UserWarning: In 'config_training_taiwan_regression-alex': Defaults list is missing `_self_`. See https://hydra.cc/docs/1.2/upgrades/1.0_to_1.1/default_composition_order for more information
+  warnings.warn(msg, UserWarning)
+[2026-02-16 17:33:19,275][main][INFO] - Saving the outputs in /home/hpc/b214cb/b214cb18/corrdiff
+[2026-02-16 17:33:19,277][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:19,277][main][INFO] - Saving the outputs in /home/hpc/b214cb/b214cb18/corrdiff
+[2026-02-16 17:33:19,278][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:19,283][main][INFO] - Saving the outputs in /home/hpc/b214cb/b214cb18/corrdiff
+[2026-02-16 17:33:19,284][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:19,284][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - Normalization: v1
+[2026-02-16 17:33:19,284][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - Normalization: v1
+[2026-02-16 17:33:19,287][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - Normalization: v1
+[2026-02-16 17:33:19,291][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - Number of valid times: 30263
+[2026-02-16 17:33:19,291][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - Number of valid times: 30263
+[2026-02-16 17:33:19,291][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - Number of valid times: 30263
+[2026-02-16 17:33:19,293][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - input_channels:[ChannelMetadata(name='tcwv', level='', auxiliary=False), ChannelMetadata(name='geopotential_height', level='500.0', auxiliary=False), ChannelMetadata(name='temperature', level='500.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='500.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='500.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='700.0', auxiliary=False), ChannelMetadata(name='temperature', level='700.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='700.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='700.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='850.0', auxiliary=False), ChannelMetadata(name='temperature', level='850.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='850.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='850.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='925.0', auxiliary=False), ChannelMetadata(name='temperature', level='925.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='925.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='925.0', auxiliary=False), ChannelMetadata(name='temperature_2m', level='', auxiliary=False), ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False), ChannelMetadata(name='northward_wind_10m', level='', auxiliary=False)]
+[2026-02-16 17:33:19,293][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - input_channels:[ChannelMetadata(name='tcwv', level='', auxiliary=False), ChannelMetadata(name='geopotential_height', level='500.0', auxiliary=False), ChannelMetadata(name='temperature', level='500.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='500.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='500.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='700.0', auxiliary=False), ChannelMetadata(name='temperature', level='700.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='700.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='700.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='850.0', auxiliary=False), ChannelMetadata(name='temperature', level='850.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='850.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='850.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='925.0', auxiliary=False), ChannelMetadata(name='temperature', level='925.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='925.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='925.0', auxiliary=False), ChannelMetadata(name='temperature_2m', level='', auxiliary=False), ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False), ChannelMetadata(name='northward_wind_10m', level='', auxiliary=False)]
+[2026-02-16 17:33:19,293][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - input_channels:[ChannelMetadata(name='tcwv', level='', auxiliary=False), ChannelMetadata(name='geopotential_height', level='500.0', auxiliary=False), ChannelMetadata(name='temperature', level='500.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='500.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='500.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='700.0', auxiliary=False), ChannelMetadata(name='temperature', level='700.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='700.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='700.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='850.0', auxiliary=False), ChannelMetadata(name='temperature', level='850.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='850.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='850.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='925.0', auxiliary=False), ChannelMetadata(name='temperature', level='925.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='925.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='925.0', auxiliary=False), ChannelMetadata(name='temperature_2m', level='', auxiliary=False), ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False), ChannelMetadata(name='northward_wind_10m', level='', auxiliary=False)]
+[2026-02-16 17:33:19,294][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - output_channels:[ChannelMetadata(name='maximum_radar_reflectivity', level='', auxiliary=False), ChannelMetadata(name='temperature_2m', level='', auxiliary=False), ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False), ChannelMetadata(name='northward_wind_10m', level='', auxiliary=False)]
+[2026-02-16 17:33:19,294][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - output_channels:[ChannelMetadata(name='maximum_radar_reflectivity', level='', auxiliary=False), ChannelMetadata(name='temperature_2m', level='', auxiliary=False), ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False), ChannelMetadata(name='northward_wind_10m', level='', auxiliary=False)]
+[2026-02-16 17:33:19,294][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - output_channels:[ChannelMetadata(name='maximum_radar_reflectivity', level='', auxiliary=False), ChannelMetadata(name='temperature_2m', level='', auxiliary=False), ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False), ChannelMetadata(name='northward_wind_10m', level='', auxiliary=False)]
+wandb: [wandb.login()] Loaded credentials for https://api.wandb.ai from WANDB_API_KEY.
+wandb: Currently logged in as: daniel-w (daniel-w-uni) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run 56scjnre
+wandb: Tracking run with wandb version 0.24.2
+wandb: Run data is saved locally in wandb/wandb/run-20260216_173319-56scjnre
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run CorrDiff-Training-taiwan_regression_Process_0_02/16/26_17:33:19
+wandb: ⭐️ View project at https://wandb.ai/daniel-w-uni/corrdiff-test
+wandb: 🚀 View run at https://wandb.ai/daniel-w-uni/corrdiff-test/runs/56scjnre
+[2026-02-16 17:33:21,750][main][INFO] - Using dataset: cwb
+[2026-02-16 17:33:21,751][main][INFO] - Saving the outputs in /home/hpc/b214cb/b214cb18/corrdiff
+[2026-02-16 17:33:21,751][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:21,758][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - Normalization: v1
+[2026-02-16 17:33:21,762][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - Number of valid times: 30263
+[2026-02-16 17:33:21,764][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - input_channels:[ChannelMetadata(name='tcwv', level='', auxiliary=False), ChannelMetadata(name='geopotential_height', level='500.0', auxiliary=False), ChannelMetadata(name='temperature', level='500.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='500.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='500.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='700.0', auxiliary=False), ChannelMetadata(name='temperature', level='700.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='700.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='700.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='850.0', auxiliary=False), ChannelMetadata(name='temperature', level='850.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='850.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='850.0', auxiliary=False), ChannelMetadata(name='geopotential_height', level='925.0', auxiliary=False), ChannelMetadata(name='temperature', level='925.0', auxiliary=False), ChannelMetadata(name='eastward_wind', level='925.0', auxiliary=False), ChannelMetadata(name='northward_wind', level='925.0', auxiliary=False), ChannelMetadata(name='temperature_2m', level='', auxiliary=False), ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False), ChannelMetadata(name='northward_wind_10m', level='', auxiliary=False)]
+[2026-02-16 17:33:21,764][/home/hpc/b214cb/b214cb18/corrdiff/datasets/cwb.py][INFO] - output_channels:[ChannelMetadata(name='maximum_radar_reflectivity', level='', auxiliary=False), ChannelMetadata(name='temperature_2m', level='', auxiliary=False), ChannelMetadata(name='eastward_wind_10m', level='', auxiliary=False), ChannelMetadata(name='northward_wind_10m', level='', auxiliary=False)]
+[2026-02-16 17:33:21,910][main][INFO] - Patch-based training disabled
+/usr/local/lib/python3.12/dist-packages/torch/nn/parallel/distributed.py:2351: UserWarning: You passed find_unused_parameters=true to DistributedDataParallel, `_set_static_graph` will detect unused parameters automatically, so you do not need to set find_unused_parameters=true, just be sure these unused parameters will not change during training loop while calling `_set_static_graph`.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/parallel/distributed.py:2351: UserWarning: You passed find_unused_parameters=true to DistributedDataParallel, `_set_static_graph` will detect unused parameters automatically, so you do not need to set find_unused_parameters=true, just be sure these unused parameters will not change during training loop while calling `_set_static_graph`.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/parallel/distributed.py:2351: UserWarning: You passed find_unused_parameters=true to DistributedDataParallel, `_set_static_graph` will detect unused parameters automatically, so you do not need to set find_unused_parameters=true, just be sure these unused parameters will not change during training loop while calling `_set_static_graph`.
+  warnings.warn(
+/usr/local/lib/python3.12/dist-packages/torch/nn/parallel/distributed.py:2351: UserWarning: You passed find_unused_parameters=true to DistributedDataParallel, `_set_static_graph` will detect unused parameters automatically, so you do not need to set find_unused_parameters=true, just be sure these unused parameters will not change during training loop while calling `_set_static_graph`.
+  warnings.warn(
+[2026-02-16 17:33:23,227][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:23,227][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:23,227][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:23,227][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:23,228][main][INFO] - Using 16 gradient accumulation rounds
+[2026-02-16 17:33:23,228][main][INFO] - Training a non-patched model: patch gradient accumulation automatically disabled.
+[2026-02-16 17:33:23,251][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:23,251][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:23,251][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:23,251][checkpoint][WARNING] - Provided checkpoint directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, skipping load
+[2026-02-16 17:33:23,251][main][INFO] - Training for 1000000 images...
+[rank1]:[W216 17:33:31.539779216 reducer.cpp:327] Warning: Grad strides do not match bucket view strides. This may indicate grad was not created according to the gradient layout contract, or that the param's strides changed since DDP was constructed.  This is not an error, but may impair performance.
+grad.sizes() = [256, 256, 1, 1], strides() = [256, 1, 256, 256]
+bucket_view.sizes() = [256, 256, 1, 1], strides() = [256, 1, 1, 1] (function operator())
+[rank0]:[W216 17:33:31.604817039 reducer.cpp:327] Warning: Grad strides do not match bucket view strides. This may indicate grad was not created according to the gradient layout contract, or that the param's strides changed since DDP was constructed.  This is not an error, but may impair performance.
+grad.sizes() = [256, 256, 1, 1], strides() = [256, 1, 256, 256]
+bucket_view.sizes() = [256, 256, 1, 1], strides() = [256, 1, 1, 1] (function operator())
+[rank3]:[W216 17:33:31.656374561 reducer.cpp:327] Warning: Grad strides do not match bucket view strides. This may indicate grad was not created according to the gradient layout contract, or that the param's strides changed since DDP was constructed.  This is not an error, but may impair performance.
+grad.sizes() = [256, 256, 1, 1], strides() = [256, 1, 256, 256]
+bucket_view.sizes() = [256, 256, 1, 1], strides() = [256, 1, 1, 1] (function operator())
+[rank2]:[W216 17:33:31.658500276 reducer.cpp:327] Warning: Grad strides do not match bucket view strides. This may indicate grad was not created according to the gradient layout contract, or that the param's strides changed since DDP was constructed.  This is not an error, but may impair performance.
+grad.sizes() = [256, 256, 1, 1], strides() = [256, 1, 256, 256]
+bucket_view.sizes() = [256, 256, 1, 1], strides() = [256, 1, 1, 1] (function operator())
+[2026-02-16 17:37:20,277][checkpoint][WARNING] - Output directory /checkpoints/taiwan/pure_lr5000/checkpoints_regression does not exist, will attempt to create
+[2026-02-16 17:37:21,670][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.5120.mdlus
+[2026-02-16 17:37:22,829][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.5120.pt
+[2026-02-16 17:38:08,919][main][INFO] - Starting Profiler at 6144
+[2026-02-16 17:38:20,440][main][INFO] - Stopping Profiler at 6400
+[2026-02-16 17:41:13,310][main][INFO] - samples 10240.0   training_loss 209408.41 training_loss_running_mean 440913.19 learning_rate 0.00020000 total_sec 470.1   sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.08   peak_gpu_mem_gb 59.93  peak_gpu_mem_reserved_gb 62.14 
+[2026-02-16 17:41:14,670][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.10240.mdlus
+[2026-02-16 17:41:15,838][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.10240.pt
+[2026-02-16 17:44:56,113][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.15104.mdlus
+[2026-02-16 17:44:57,327][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.15104.pt
+[2026-02-16 17:48:47,884][main][INFO] - samples 20224.0   training_loss 203971.61 training_loss_running_mean 258295.25 learning_rate 0.00020000 total_sec 924.7   sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.08   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 17:48:49,395][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.20224.mdlus
+[2026-02-16 17:48:50,650][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.20224.pt
+[2026-02-16 17:52:31,202][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.25088.mdlus
+[2026-02-16 17:52:32,366][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.25088.pt
+[2026-02-16 17:56:22,803][main][INFO] - samples 30208.0   training_loss 182696.20 training_loss_running_mean 191554.56 learning_rate 0.00020000 total_sec 1379.6  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.08   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 17:56:24,156][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.30208.mdlus
+[2026-02-16 17:56:25,333][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.30208.pt
+[2026-02-16 18:00:05,652][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.35072.mdlus
+[2026-02-16 18:00:06,839][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.35072.pt
+[2026-02-16 18:03:57,356][main][INFO] - samples 40192.0   training_loss 171748.94 training_loss_running_mean 184339.16 learning_rate 0.00020000 total_sec 1834.1  sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.08   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 18:03:58,713][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.40192.mdlus
+[2026-02-16 18:03:59,908][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.40192.pt
+[2026-02-16 18:07:40,257][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.45056.mdlus
+[2026-02-16 18:07:41,552][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.45056.pt
+[2026-02-16 18:11:32,164][main][INFO] - samples 50176.0   training_loss 180067.09 training_loss_running_mean 236662.57 learning_rate 0.00020000 total_sec 2288.9  sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.08   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 18:11:33,537][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.50176.mdlus
+[2026-02-16 18:11:34,727][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.50176.pt
+[2026-02-16 18:15:15,278][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.55040.mdlus
+[2026-02-16 18:15:16,500][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.55040.pt
+[2026-02-16 18:19:07,014][main][INFO] - samples 60160.0   training_loss 182108.28 training_loss_running_mean 176856.36 learning_rate 0.00020000 total_sec 2743.8  sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.08   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 18:19:08,401][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.60160.mdlus
+[2026-02-16 18:19:09,607][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.60160.pt
+[2026-02-16 18:22:49,916][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.65024.mdlus
+[2026-02-16 18:22:51,112][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.65024.pt
+[2026-02-16 18:26:41,514][main][INFO] - samples 70144.0   training_loss 179518.55 training_loss_running_mean 228180.12 learning_rate 0.00020000 total_sec 3198.3  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.08   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 18:26:42,984][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.70144.mdlus
+[2026-02-16 18:26:44,219][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.70144.pt
+[2026-02-16 18:30:24,900][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.75008.mdlus
+[2026-02-16 18:30:26,211][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.75008.pt
+[2026-02-16 18:34:16,714][main][INFO] - samples 80128.0   training_loss 184405.42 training_loss_running_mean 172894.50 learning_rate 0.00020000 total_sec 3653.5  sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.08   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 18:34:18,104][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.80128.mdlus
+[2026-02-16 18:34:19,284][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.80128.pt
+[2026-02-16 18:38:11,060][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.85248.mdlus
+[2026-02-16 18:38:12,282][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.85248.pt
+[2026-02-16 18:41:51,168][main][INFO] - samples 90112.0   training_loss 157580.00 training_loss_running_mean 169552.16 learning_rate 0.00020000 total_sec 4107.9  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.08   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 18:41:52,520][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.90112.mdlus
+[2026-02-16 18:41:53,705][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.90112.pt
+[2026-02-16 18:45:45,477][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.95232.mdlus
+[2026-02-16 18:45:46,639][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.95232.pt
+[2026-02-16 18:49:25,636][main][INFO] - samples 100096.0  training_loss 170132.86 training_loss_running_mean 167792.20 learning_rate 0.00020000 total_sec 4562.4  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.08   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 18:49:27,000][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.100096.mdlus
+[2026-02-16 18:49:28,197][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.100096.pt
+[2026-02-16 18:53:20,653][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.105216.mdlus
+[2026-02-16 18:53:21,821][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.105216.pt
+[2026-02-16 18:57:00,869][main][INFO] - samples 110080.0  training_loss 166219.12 training_loss_running_mean 164064.05 learning_rate 0.00020000 total_sec 5017.6  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 18:57:02,275][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.110080.mdlus
+[2026-02-16 18:57:03,484][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.110080.pt
+[2026-02-16 19:00:55,439][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.115200.mdlus
+[2026-02-16 19:00:56,659][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.115200.pt
+[2026-02-16 19:04:35,625][main][INFO] - samples 120064.0  training_loss 157041.28 training_loss_running_mean 164211.10 learning_rate 0.00020000 total_sec 5472.4  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 19:04:36,974][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.120064.mdlus
+[2026-02-16 19:04:38,163][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.120064.pt
+[2026-02-16 19:08:30,063][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.125184.mdlus
+[2026-02-16 19:08:31,249][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.125184.pt
+[2026-02-16 19:12:10,125][main][INFO] - samples 130048.0  training_loss 159437.83 training_loss_running_mean 159228.07 learning_rate 0.00020000 total_sec 5926.9  sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 19:12:11,481][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.130048.mdlus
+[2026-02-16 19:12:12,674][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.130048.pt
+[2026-02-16 19:16:04,394][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.135168.mdlus
+[2026-02-16 19:16:05,564][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.135168.pt
+[2026-02-16 19:19:44,468][main][INFO] - samples 140032.0  training_loss 150386.58 training_loss_running_mean 214537.43 learning_rate 0.00020000 total_sec 6381.2  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 19:19:45,843][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.140032.mdlus
+[2026-02-16 19:19:47,088][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.140032.pt
+[2026-02-16 19:23:38,903][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.145152.mdlus
+[2026-02-16 19:23:40,134][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.145152.pt
+[2026-02-16 19:27:18,977][main][INFO] - samples 150016.0  training_loss 161821.09 training_loss_running_mean 157919.55 learning_rate 0.00020000 total_sec 6835.7  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 19:27:20,354][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.150016.mdlus
+[2026-02-16 19:27:21,584][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.150016.pt
+[2026-02-16 19:31:13,419][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.155136.mdlus
+[2026-02-16 19:31:14,587][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.155136.pt
+[2026-02-16 19:34:53,578][main][INFO] - samples 160000.0  training_loss 155262.19 training_loss_running_mean 210966.16 learning_rate 0.00020000 total_sec 7290.3  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 19:34:54,935][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.160000.mdlus
+[2026-02-16 19:34:56,074][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.160000.pt
+[2026-02-16 19:38:47,930][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.165120.mdlus
+[2026-02-16 19:38:49,121][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.165120.pt
+[2026-02-16 19:42:39,471][main][INFO] - samples 170240.0  training_loss 158532.98 training_loss_running_mean 154751.47 learning_rate 0.00020000 total_sec 7756.2  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 19:42:40,855][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.170240.mdlus
+[2026-02-16 19:42:42,207][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.170240.pt
+[2026-02-16 19:46:22,688][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.175104.mdlus
+[2026-02-16 19:46:23,925][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.175104.pt
+[2026-02-16 19:50:14,366][main][INFO] - samples 180224.0  training_loss 151681.97 training_loss_running_mean 153391.47 learning_rate 0.00020000 total_sec 8211.1  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 19:50:15,783][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.180224.mdlus
+[2026-02-16 19:50:17,033][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.180224.pt
+[2026-02-16 19:53:57,573][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.185088.mdlus
+[2026-02-16 19:53:58,715][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.185088.pt
+[2026-02-16 19:57:49,215][main][INFO] - samples 190208.0  training_loss 146006.22 training_loss_running_mean 207263.24 learning_rate 0.00020000 total_sec 8666.0  sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 19:57:50,602][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.190208.mdlus
+[2026-02-16 19:57:51,819][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.190208.pt
+[2026-02-16 20:01:32,115][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.195072.mdlus
+[2026-02-16 20:01:33,657][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.195072.pt
+[2026-02-16 20:05:24,154][main][INFO] - samples 200192.0  training_loss 148730.47 training_loss_running_mean 149632.87 learning_rate 0.00020000 total_sec 9120.9  sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 20:05:25,485][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.200192.mdlus
+[2026-02-16 20:05:26,720][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.200192.pt
+[2026-02-16 20:09:07,241][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.205056.mdlus
+[2026-02-16 20:09:08,490][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.205056.pt
+[2026-02-16 20:12:58,977][main][INFO] - samples 210176.0  training_loss 151471.12 training_loss_running_mean 149814.78 learning_rate 0.00020000 total_sec 9575.7  sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 20:13:00,356][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.210176.mdlus
+[2026-02-16 20:13:01,537][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.210176.pt
+[2026-02-16 20:16:41,906][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.215040.mdlus
+[2026-02-16 20:16:43,087][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.215040.pt
+[2026-02-16 20:20:33,539][main][INFO] - samples 220160.0  training_loss 148091.72 training_loss_running_mean 203697.13 learning_rate 0.00020000 total_sec 10030.3 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 20:20:34,907][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.220160.mdlus
+[2026-02-16 20:20:36,161][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.220160.pt
+[2026-02-16 20:24:16,318][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.225024.mdlus
+[2026-02-16 20:24:17,473][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.225024.pt
+[2026-02-16 20:28:07,948][main][INFO] - samples 230144.0  training_loss 144818.72 training_loss_running_mean 146609.06 learning_rate 0.00020000 total_sec 10484.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 20:28:09,324][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.230144.mdlus
+[2026-02-16 20:28:10,485][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.230144.pt
+[2026-02-16 20:31:50,703][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.235008.mdlus
+[2026-02-16 20:31:51,849][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.235008.pt
+[2026-02-16 20:35:42,316][main][INFO] - samples 240128.0  training_loss 147671.70 training_loss_running_mean 201097.26 learning_rate 0.00020000 total_sec 10939.1 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 20:35:43,620][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.240128.mdlus
+[2026-02-16 20:35:44,759][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.240128.pt
+[2026-02-16 20:39:36,809][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.245248.mdlus
+[2026-02-16 20:39:37,992][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.245248.pt
+[2026-02-16 20:43:16,951][main][INFO] - samples 250112.0  training_loss 143004.75 training_loss_running_mean 143649.18 learning_rate 0.00020000 total_sec 11393.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 20:43:18,317][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.250112.mdlus
+[2026-02-16 20:43:19,512][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.250112.pt
+[2026-02-16 20:47:11,446][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.255232.mdlus
+[2026-02-16 20:47:12,631][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.255232.pt
+[2026-02-16 20:50:51,920][main][INFO] - samples 260096.0  training_loss 146774.23 training_loss_running_mean 144184.20 learning_rate 0.00020000 total_sec 11848.7 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 20:50:53,349][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.260096.mdlus
+[2026-02-16 20:50:54,575][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.260096.pt
+[2026-02-16 20:54:46,514][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.265216.mdlus
+[2026-02-16 20:54:47,727][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.265216.pt
+[2026-02-16 20:58:26,929][main][INFO] - samples 270080.0  training_loss 142067.69 training_loss_running_mean 141916.48 learning_rate 0.00020000 total_sec 12303.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 20:58:28,281][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.270080.mdlus
+[2026-02-16 20:58:29,477][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.270080.pt
+[2026-02-16 21:02:21,244][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.275200.mdlus
+[2026-02-16 21:02:22,432][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.275200.pt
+[2026-02-16 21:06:01,436][main][INFO] - samples 280064.0  training_loss 130881.75 training_loss_running_mean 141634.92 learning_rate 0.00020000 total_sec 12758.2 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 21:06:02,815][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.280064.mdlus
+[2026-02-16 21:06:03,995][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.280064.pt
+[2026-02-16 21:09:56,032][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.285184.mdlus
+[2026-02-16 21:09:57,215][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.285184.pt
+[2026-02-16 21:13:36,333][main][INFO] - samples 290048.0  training_loss 131620.39 training_loss_running_mean 139787.08 learning_rate 0.00020000 total_sec 13213.1 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 21:13:37,707][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.290048.mdlus
+[2026-02-16 21:13:38,817][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.290048.pt
+[2026-02-16 21:17:30,779][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.295168.mdlus
+[2026-02-16 21:17:31,910][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.295168.pt
+[2026-02-16 21:21:11,021][main][INFO] - samples 300032.0  training_loss 142147.94 training_loss_running_mean 138993.84 learning_rate 0.00020000 total_sec 13667.8 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 21:21:12,393][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.300032.mdlus
+[2026-02-16 21:21:13,551][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.300032.pt
+[2026-02-16 21:25:05,440][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.305152.mdlus
+[2026-02-16 21:25:06,641][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.305152.pt
+[2026-02-16 21:28:45,679][main][INFO] - samples 310016.0  training_loss 135364.56 training_loss_running_mean 193639.50 learning_rate 0.00020000 total_sec 14122.4 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 21:28:47,033][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.310016.mdlus
+[2026-02-16 21:28:48,161][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.310016.pt
+[2026-02-16 21:32:40,039][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.315136.mdlus
+[2026-02-16 21:32:41,185][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.315136.pt
+[2026-02-16 21:36:20,111][main][INFO] - samples 320000.0  training_loss 138656.28 training_loss_running_mean 137551.64 learning_rate 0.00020000 total_sec 14576.9 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 21:36:21,470][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.320000.mdlus
+[2026-02-16 21:36:22,657][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.320000.pt
+[2026-02-16 21:40:14,499][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.325120.mdlus
+[2026-02-16 21:40:15,684][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.325120.pt
+[2026-02-16 21:44:06,337][main][INFO] - samples 330240.0  training_loss 137436.66 training_loss_running_mean 191054.47 learning_rate 0.00020000 total_sec 15043.1 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 21:44:07,739][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.330240.mdlus
+[2026-02-16 21:44:08,863][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.330240.pt
+[2026-02-16 21:47:49,105][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.335104.mdlus
+[2026-02-16 21:47:50,309][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.335104.pt
+[2026-02-16 21:51:40,812][main][INFO] - samples 340224.0  training_loss 127504.05 training_loss_running_mean 134893.33 learning_rate 0.00020000 total_sec 15497.6 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 21:51:42,157][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.340224.mdlus
+[2026-02-16 21:51:43,351][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.340224.pt
+[2026-02-16 21:55:23,535][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.345088.mdlus
+[2026-02-16 21:55:24,592][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.345088.pt
+[2026-02-16 21:59:15,110][main][INFO] - samples 350208.0  training_loss 134720.22 training_loss_running_mean 133309.12 learning_rate 0.00020000 total_sec 15951.9 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 21:59:16,521][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.350208.mdlus
+[2026-02-16 21:59:17,719][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.350208.pt
+[2026-02-16 22:02:57,971][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.355072.mdlus
+[2026-02-16 22:02:59,154][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.355072.pt
+[2026-02-16 22:06:49,851][main][INFO] - samples 360192.0  training_loss 130124.80 training_loss_running_mean 132344.30 learning_rate 0.00020000 total_sec 16406.6 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 22:06:51,222][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.360192.mdlus
+[2026-02-16 22:06:52,647][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.360192.pt
+[2026-02-16 22:10:33,151][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.365056.mdlus
+[2026-02-16 22:10:34,327][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.365056.pt
+[2026-02-16 22:14:24,796][main][INFO] - samples 370176.0  training_loss 126498.94 training_loss_running_mean 132774.86 learning_rate 0.00020000 total_sec 16861.6 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 22:14:26,181][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.370176.mdlus
+[2026-02-16 22:14:27,381][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.370176.pt
+[2026-02-16 22:18:07,695][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.375040.mdlus
+[2026-02-16 22:18:08,933][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.375040.pt
+[2026-02-16 22:21:59,392][main][INFO] - samples 380160.0  training_loss 137453.98 training_loss_running_mean 186555.94 learning_rate 0.00020000 total_sec 17316.2 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 22:22:00,743][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.380160.mdlus
+[2026-02-16 22:22:02,032][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.380160.pt
+[2026-02-16 22:25:42,356][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.385024.mdlus
+[2026-02-16 22:25:43,567][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.385024.pt
+[2026-02-16 22:29:34,067][main][INFO] - samples 390144.0  training_loss 134543.41 training_loss_running_mean 131507.22 learning_rate 0.00020000 total_sec 17770.8 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 22:29:35,440][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.390144.mdlus
+[2026-02-16 22:29:36,686][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.390144.pt
+[2026-02-16 22:33:17,099][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.395008.mdlus
+[2026-02-16 22:33:18,223][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.395008.pt
+[2026-02-16 22:37:08,824][main][INFO] - samples 400128.0  training_loss 137279.34 training_loss_running_mean 184534.42 learning_rate 0.00020000 total_sec 18225.6 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 22:37:10,182][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.400128.mdlus
+[2026-02-16 22:37:11,359][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.400128.pt
+[2026-02-16 22:41:03,282][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.405248.mdlus
+[2026-02-16 22:41:04,623][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.405248.pt
+[2026-02-16 22:44:43,461][main][INFO] - samples 410112.0  training_loss 130958.72 training_loss_running_mean 129174.96 learning_rate 0.00020000 total_sec 18680.2 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 22:44:44,853][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.410112.mdlus
+[2026-02-16 22:44:46,049][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.410112.pt
+[2026-02-16 22:48:37,857][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.415232.mdlus
+[2026-02-16 22:48:39,044][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.415232.pt
+[2026-02-16 22:52:17,865][main][INFO] - samples 420096.0  training_loss 134972.56 training_loss_running_mean 184293.74 learning_rate 0.00020000 total_sec 19134.6 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 22:52:19,213][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.420096.mdlus
+[2026-02-16 22:52:20,375][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.420096.pt
+[2026-02-16 22:56:12,171][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.425216.mdlus
+[2026-02-16 22:56:13,348][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.425216.pt
+[2026-02-16 22:59:52,290][main][INFO] - samples 430080.0  training_loss 133419.02 training_loss_running_mean 179612.31 learning_rate 0.00020000 total_sec 19589.1 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 22:59:53,668][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.430080.mdlus
+[2026-02-16 22:59:54,838][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.430080.pt
+[2026-02-16 23:03:46,632][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.435200.mdlus
+[2026-02-16 23:03:47,730][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.435200.pt
+[2026-02-16 23:07:26,617][main][INFO] - samples 440064.0  training_loss 119302.02 training_loss_running_mean 129033.99 learning_rate 0.00020000 total_sec 20043.4 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 23:07:27,970][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.440064.mdlus
+[2026-02-16 23:07:29,102][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.440064.pt
+[2026-02-16 23:11:20,823][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.445184.mdlus
+[2026-02-16 23:11:22,065][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.445184.pt
+[2026-02-16 23:15:00,978][main][INFO] - samples 450048.0  training_loss 124600.03 training_loss_running_mean 125562.50 learning_rate 0.00020000 total_sec 20497.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 23:15:02,335][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.450048.mdlus
+[2026-02-16 23:15:03,519][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.450048.pt
+[2026-02-16 23:18:55,807][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.455168.mdlus
+[2026-02-16 23:18:57,024][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.455168.pt
+[2026-02-16 23:22:36,114][main][INFO] - samples 460032.0  training_loss 121688.11 training_loss_running_mean 125260.68 learning_rate 0.00020000 total_sec 20952.9 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 23:22:37,527][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.460032.mdlus
+[2026-02-16 23:22:38,750][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.460032.pt
+[2026-02-16 23:26:30,601][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.465152.mdlus
+[2026-02-16 23:26:31,820][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.465152.pt
+[2026-02-16 23:30:11,160][main][INFO] - samples 470016.0  training_loss 122149.98 training_loss_running_mean 179024.94 learning_rate 0.00020000 total_sec 21407.9 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 23:30:12,782][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.470016.mdlus
+[2026-02-16 23:30:13,979][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.470016.pt
+[2026-02-16 23:34:05,943][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.475136.mdlus
+[2026-02-16 23:34:07,089][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.475136.pt
+[2026-02-16 23:37:46,174][main][INFO] - samples 480000.0  training_loss 134678.14 training_loss_running_mean 177151.61 learning_rate 0.00020000 total_sec 21862.9 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 23:37:47,530][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.480000.mdlus
+[2026-02-16 23:37:48,688][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.480000.pt
+[2026-02-16 23:41:40,518][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.485120.mdlus
+[2026-02-16 23:41:41,670][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.485120.pt
+[2026-02-16 23:45:32,358][main][INFO] - samples 490240.0  training_loss 119221.75 training_loss_running_mean 125309.40 learning_rate 0.00020000 total_sec 22329.1 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 23:45:33,714][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.490240.mdlus
+[2026-02-16 23:45:34,809][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.490240.pt
+[2026-02-16 23:49:15,183][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.495104.mdlus
+[2026-02-16 23:49:16,354][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.495104.pt
+[2026-02-16 23:53:06,923][main][INFO] - samples 500224.0  training_loss 126215.03 training_loss_running_mean 179256.86 learning_rate 0.00020000 total_sec 22783.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.09   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-16 23:53:08,271][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.500224.mdlus
+[2026-02-16 23:53:09,396][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.500224.pt
+[2026-02-16 23:56:49,773][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.505088.mdlus
+[2026-02-16 23:56:51,032][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.505088.pt
+[2026-02-17 00:00:41,415][main][INFO] - samples 510208.0  training_loss 126614.11 training_loss_running_mean 121313.92 learning_rate 0.00020000 total_sec 23238.2 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 00:00:42,784][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.510208.mdlus
+[2026-02-17 00:00:43,946][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.510208.pt
+[2026-02-17 00:04:24,290][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.515072.mdlus
+[2026-02-17 00:04:25,448][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.515072.pt
+[2026-02-17 00:08:16,011][main][INFO] - samples 520192.0  training_loss 113565.25 training_loss_running_mean 127271.55 learning_rate 0.00020000 total_sec 23692.8 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 00:08:17,387][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.520192.mdlus
+[2026-02-17 00:08:18,539][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.520192.pt
+[2026-02-17 00:11:58,825][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.525056.mdlus
+[2026-02-17 00:11:59,956][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.525056.pt
+[2026-02-17 00:15:50,419][main][INFO] - samples 530176.0  training_loss 127040.20 training_loss_running_mean 122586.71 learning_rate 0.00020000 total_sec 24147.2 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 00:15:51,809][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.530176.mdlus
+[2026-02-17 00:15:53,025][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.530176.pt
+[2026-02-17 00:19:33,484][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.535040.mdlus
+[2026-02-17 00:19:34,675][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.535040.pt
+[2026-02-17 00:23:25,478][main][INFO] - samples 540160.0  training_loss 118781.45 training_loss_running_mean 119801.29 learning_rate 0.00020000 total_sec 24602.2 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 00:23:26,837][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.540160.mdlus
+[2026-02-17 00:23:27,958][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.540160.pt
+[2026-02-17 00:27:08,363][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.545024.mdlus
+[2026-02-17 00:27:09,466][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.545024.pt
+[2026-02-17 00:30:59,897][main][INFO] - samples 550144.0  training_loss 117338.64 training_loss_running_mean 176117.49 learning_rate 0.00020000 total_sec 25056.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 00:31:01,244][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.550144.mdlus
+[2026-02-17 00:31:02,318][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.550144.pt
+[2026-02-17 00:34:42,722][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.555008.mdlus
+[2026-02-17 00:34:43,872][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.555008.pt
+[2026-02-17 00:38:34,459][main][INFO] - samples 560128.0  training_loss 128029.16 training_loss_running_mean 173514.48 learning_rate 0.00020000 total_sec 25511.2 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 00:38:35,829][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.560128.mdlus
+[2026-02-17 00:38:36,975][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.560128.pt
+[2026-02-17 00:42:28,807][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.565248.mdlus
+[2026-02-17 00:42:29,886][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.565248.pt
+[2026-02-17 00:46:08,953][main][INFO] - samples 570112.0  training_loss 121795.41 training_loss_running_mean 118754.49 learning_rate 0.00020000 total_sec 25965.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 00:46:10,302][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.570112.mdlus
+[2026-02-17 00:46:11,430][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.570112.pt
+[2026-02-17 00:50:03,098][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.575232.mdlus
+[2026-02-17 00:50:04,244][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.575232.pt
+[2026-02-17 00:53:43,282][main][INFO] - samples 580096.0  training_loss 119202.77 training_loss_running_mean 117555.18 learning_rate 0.00020000 total_sec 26420.1 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 00:53:44,640][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.580096.mdlus
+[2026-02-17 00:53:45,743][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.580096.pt
+[2026-02-17 00:57:37,697][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.585216.mdlus
+[2026-02-17 00:57:38,844][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.585216.pt
+[2026-02-17 01:01:17,898][main][INFO] - samples 590080.0  training_loss 120865.87 training_loss_running_mean 117136.59 learning_rate 0.00020000 total_sec 26874.7 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 01:01:19,247][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.590080.mdlus
+[2026-02-17 01:01:20,420][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.590080.pt
+[2026-02-17 01:05:12,359][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.595200.mdlus
+[2026-02-17 01:05:13,519][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.595200.pt
+[2026-02-17 01:08:52,596][main][INFO] - samples 600064.0  training_loss 118752.05 training_loss_running_mean 174454.60 learning_rate 0.00020000 total_sec 27329.4 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 01:08:53,967][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.600064.mdlus
+[2026-02-17 01:08:55,130][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.600064.pt
+[2026-02-17 01:12:47,035][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.605184.mdlus
+[2026-02-17 01:12:48,163][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.605184.pt
+[2026-02-17 01:16:27,224][main][INFO] - samples 610048.0  training_loss 113508.84 training_loss_running_mean 117171.27 learning_rate 0.00020000 total_sec 27784.0 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 01:16:28,586][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.610048.mdlus
+[2026-02-17 01:16:29,748][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.610048.pt
+[2026-02-17 01:20:22,044][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.615168.mdlus
+[2026-02-17 01:20:23,231][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.615168.pt
+[2026-02-17 01:24:02,410][main][INFO] - samples 620032.0  training_loss 113208.28 training_loss_running_mean 181488.87 learning_rate 0.00020000 total_sec 28239.2 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 01:24:03,762][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.620032.mdlus
+[2026-02-17 01:24:04,918][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.620032.pt
+[2026-02-17 01:27:57,205][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.625152.mdlus
+[2026-02-17 01:27:58,466][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.625152.pt
+[2026-02-17 01:31:37,718][main][INFO] - samples 630016.0  training_loss 123961.78 training_loss_running_mean 174976.57 learning_rate 0.00020000 total_sec 28694.5 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 01:31:39,107][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.630016.mdlus
+[2026-02-17 01:31:40,239][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.630016.pt
+[2026-02-17 01:35:31,996][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.635136.mdlus
+[2026-02-17 01:35:33,148][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.635136.pt
+[2026-02-17 01:39:12,201][main][INFO] - samples 640000.0  training_loss 113450.90 training_loss_running_mean 117999.98 learning_rate 0.00020000 total_sec 29149.0 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 01:39:13,575][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.640000.mdlus
+[2026-02-17 01:39:14,704][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.640000.pt
+[2026-02-17 01:43:06,856][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.645120.mdlus
+[2026-02-17 01:43:08,054][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.645120.pt
+[2026-02-17 01:46:58,731][main][INFO] - samples 650240.0  training_loss 114272.95 training_loss_running_mean 115927.83 learning_rate 0.00020000 total_sec 29615.5 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 01:47:00,122][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.650240.mdlus
+[2026-02-17 01:47:01,427][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.650240.pt
+[2026-02-17 01:50:41,975][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.655104.mdlus
+[2026-02-17 01:50:43,111][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.655104.pt
+[2026-02-17 01:54:33,770][main][INFO] - samples 660224.0  training_loss 123546.66 training_loss_running_mean 170452.75 learning_rate 0.00020000 total_sec 30070.5 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 01:54:35,165][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.660224.mdlus
+[2026-02-17 01:54:36,320][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.660224.pt
+[2026-02-17 01:58:16,715][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.665088.mdlus
+[2026-02-17 01:58:17,908][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.665088.pt
+[2026-02-17 02:02:08,488][main][INFO] - samples 670208.0  training_loss 117840.74 training_loss_running_mean 116325.47 learning_rate 0.00020000 total_sec 30525.3 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 02:02:09,852][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.670208.mdlus
+[2026-02-17 02:02:11,041][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.670208.pt
+[2026-02-17 02:05:51,423][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.675072.mdlus
+[2026-02-17 02:05:52,587][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.675072.pt
+[2026-02-17 02:09:42,978][main][INFO] - samples 680192.0  training_loss 105963.82 training_loss_running_mean 114279.98 learning_rate 0.00020000 total_sec 30979.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 02:09:44,335][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.680192.mdlus
+[2026-02-17 02:09:45,474][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.680192.pt
+[2026-02-17 02:13:25,866][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.685056.mdlus
+[2026-02-17 02:13:27,112][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.685056.pt
+[2026-02-17 02:17:17,660][main][INFO] - samples 690176.0  training_loss 110813.83 training_loss_running_mean 112113.68 learning_rate 0.00020000 total_sec 31434.4 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 02:17:19,008][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.690176.mdlus
+[2026-02-17 02:17:20,171][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.690176.pt
+[2026-02-17 02:21:00,513][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.695040.mdlus
+[2026-02-17 02:21:01,678][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.695040.pt
+[2026-02-17 02:24:52,256][main][INFO] - samples 700160.0  training_loss 112053.45 training_loss_running_mean 170576.19 learning_rate 0.00020000 total_sec 31889.0 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 02:24:53,643][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.700160.mdlus
+[2026-02-17 02:24:54,856][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.700160.pt
+[2026-02-17 02:28:35,246][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.705024.mdlus
+[2026-02-17 02:28:36,405][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.705024.pt
+[2026-02-17 02:32:26,937][main][INFO] - samples 710144.0  training_loss 103664.75 training_loss_running_mean 111803.47 learning_rate 0.00020000 total_sec 32343.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 02:32:28,317][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.710144.mdlus
+[2026-02-17 02:32:29,455][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.710144.pt
+[2026-02-17 02:36:10,152][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.715008.mdlus
+[2026-02-17 02:36:11,320][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.715008.pt
+[2026-02-17 02:40:01,842][main][INFO] - samples 720128.0  training_loss 117484.00 training_loss_running_mean 111699.85 learning_rate 0.00020000 total_sec 32798.6 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 02:40:03,210][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.720128.mdlus
+[2026-02-17 02:40:04,333][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.720128.pt
+[2026-02-17 02:43:56,329][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.725248.mdlus
+[2026-02-17 02:43:57,507][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.725248.pt
+[2026-02-17 02:47:36,591][main][INFO] - samples 730112.0  training_loss 112431.62 training_loss_running_mean 168232.85 learning_rate 0.00020000 total_sec 33253.4 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 02:47:37,980][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.730112.mdlus
+[2026-02-17 02:47:39,131][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.730112.pt
+[2026-02-17 02:51:31,050][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.735232.mdlus
+[2026-02-17 02:51:32,254][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.735232.pt
+[2026-02-17 02:55:11,387][main][INFO] - samples 740096.0  training_loss 110010.47 training_loss_running_mean 163759.29 learning_rate 0.00020000 total_sec 33708.2 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 02:55:12,781][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.740096.mdlus
+[2026-02-17 02:55:13,973][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.740096.pt
+[2026-02-17 02:59:06,160][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.745216.mdlus
+[2026-02-17 02:59:07,416][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.745216.pt
+[2026-02-17 03:02:46,511][main][INFO] - samples 750080.0  training_loss 107259.21 training_loss_running_mean 111794.95 learning_rate 0.00020000 total_sec 34163.3 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 03:02:47,857][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.750080.mdlus
+[2026-02-17 03:02:48,974][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.750080.pt
+[2026-02-17 03:06:40,774][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.755200.mdlus
+[2026-02-17 03:06:41,949][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.755200.pt
+[2026-02-17 03:10:20,960][main][INFO] - samples 760064.0  training_loss 115140.60 training_loss_running_mean 163873.95 learning_rate 0.00020000 total_sec 34617.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 03:10:22,343][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.760064.mdlus
+[2026-02-17 03:10:23,477][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.760064.pt
+[2026-02-17 03:14:15,495][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.765184.mdlus
+[2026-02-17 03:14:16,656][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.765184.pt
+[2026-02-17 03:17:56,154][main][INFO] - samples 770048.0  training_loss 105290.59 training_loss_running_mean 110790.34 learning_rate 0.00020000 total_sec 35072.9 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 03:17:57,557][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.770048.mdlus
+[2026-02-17 03:17:58,744][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.770048.pt
+[2026-02-17 03:21:50,927][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.775168.mdlus
+[2026-02-17 03:21:52,179][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.775168.pt
+[2026-02-17 03:25:31,561][main][INFO] - samples 780032.0  training_loss 119247.74 training_loss_running_mean 167351.45 learning_rate 0.00020000 total_sec 35528.3 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 03:25:32,918][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.780032.mdlus
+[2026-02-17 03:25:34,081][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.780032.pt
+[2026-02-17 03:29:26,000][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.785152.mdlus
+[2026-02-17 03:29:27,231][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.785152.pt
+[2026-02-17 03:33:06,226][main][INFO] - samples 790016.0  training_loss 109673.48 training_loss_running_mean 112316.44 learning_rate 0.00020000 total_sec 35983.0 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 03:33:07,625][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.790016.mdlus
+[2026-02-17 03:33:08,853][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.790016.pt
+[2026-02-17 03:37:00,837][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.795136.mdlus
+[2026-02-17 03:37:02,074][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.795136.pt
+[2026-02-17 03:40:41,007][main][INFO] - samples 800000.0  training_loss 113098.88 training_loss_running_mean 109617.67 learning_rate 0.00020000 total_sec 36437.8 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 03:40:42,387][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.800000.mdlus
+[2026-02-17 03:40:43,546][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.800000.pt
+[2026-02-17 03:44:35,472][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.805120.mdlus
+[2026-02-17 03:44:36,673][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.805120.pt
+[2026-02-17 03:48:27,317][main][INFO] - samples 810240.0  training_loss 130373.23 training_loss_running_mean 169697.87 learning_rate 0.00020000 total_sec 36904.1 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 03:48:28,693][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.810240.mdlus
+[2026-02-17 03:48:29,809][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.810240.pt
+[2026-02-17 03:52:10,301][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.815104.mdlus
+[2026-02-17 03:52:11,448][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.815104.pt
+[2026-02-17 03:56:02,198][main][INFO] - samples 820224.0  training_loss 117684.63 training_loss_running_mean 120546.24 learning_rate 0.00020000 total_sec 37359.0 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 03:56:03,549][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.820224.mdlus
+[2026-02-17 03:56:04,658][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.820224.pt
+[2026-02-17 03:59:45,027][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.825088.mdlus
+[2026-02-17 03:59:46,135][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.825088.pt
+[2026-02-17 04:03:36,710][main][INFO] - samples 830208.0  training_loss 107193.69 training_loss_running_mean 111077.54 learning_rate 0.00020000 total_sec 37813.5 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 04:03:38,084][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.830208.mdlus
+[2026-02-17 04:03:39,223][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.830208.pt
+[2026-02-17 04:07:19,694][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.835072.mdlus
+[2026-02-17 04:07:20,863][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.835072.pt
+[2026-02-17 04:11:11,521][main][INFO] - samples 840192.0  training_loss 104749.67 training_loss_running_mean 109603.80 learning_rate 0.00020000 total_sec 38268.3 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 04:11:12,873][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.840192.mdlus
+[2026-02-17 04:11:14,047][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.840192.pt
+[2026-02-17 04:14:54,418][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.845056.mdlus
+[2026-02-17 04:14:55,546][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.845056.pt
+[2026-02-17 04:18:46,266][main][INFO] - samples 850176.0  training_loss 114086.25 training_loss_running_mean 162727.24 learning_rate 0.00020000 total_sec 38723.0 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 04:18:47,632][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.850176.mdlus
+[2026-02-17 04:18:48,771][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.850176.pt
+[2026-02-17 04:22:29,231][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.855040.mdlus
+[2026-02-17 04:22:30,417][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.855040.pt
+[2026-02-17 04:26:21,078][main][INFO] - samples 860160.0  training_loss 118806.56 training_loss_running_mean 112871.07 learning_rate 0.00020000 total_sec 39177.8 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 04:26:22,441][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.860160.mdlus
+[2026-02-17 04:26:23,595][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.860160.pt
+[2026-02-17 04:30:04,324][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.865024.mdlus
+[2026-02-17 04:30:05,492][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.865024.pt
+[2026-02-17 04:33:56,268][main][INFO] - samples 870144.0  training_loss 108407.36 training_loss_running_mean 160816.76 learning_rate 0.00020000 total_sec 39633.0 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 04:33:57,608][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.870144.mdlus
+[2026-02-17 04:33:58,753][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.870144.pt
+[2026-02-17 04:37:39,238][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.875008.mdlus
+[2026-02-17 04:37:40,404][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.875008.pt
+[2026-02-17 04:41:31,017][main][INFO] - samples 880128.0  training_loss 109177.44 training_loss_running_mean 108106.93 learning_rate 0.00020000 total_sec 40087.8 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 04:41:32,380][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.880128.mdlus
+[2026-02-17 04:41:33,525][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.880128.pt
+[2026-02-17 04:45:25,529][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.885248.mdlus
+[2026-02-17 04:45:26,766][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.885248.pt
+[2026-02-17 04:49:05,857][main][INFO] - samples 890112.0  training_loss 109450.55 training_loss_running_mean 105795.33 learning_rate 0.00020000 total_sec 40542.6 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 04:49:07,236][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.890112.mdlus
+[2026-02-17 04:49:08,455][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.890112.pt
+[2026-02-17 04:53:00,311][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.895232.mdlus
+[2026-02-17 04:53:01,471][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.895232.pt
+[2026-02-17 04:56:40,614][main][INFO] - samples 900096.0  training_loss 105762.33 training_loss_running_mean 163171.65 learning_rate 0.00020000 total_sec 40997.4 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 04:56:41,972][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.900096.mdlus
+[2026-02-17 04:56:43,099][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.900096.pt
+[2026-02-17 05:00:35,100][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.905216.mdlus
+[2026-02-17 05:00:36,272][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.905216.pt
+[2026-02-17 05:04:15,373][main][INFO] - samples 910080.0  training_loss 108486.49 training_loss_running_mean 106514.64 learning_rate 0.00020000 total_sec 41452.1 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 05:04:16,788][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.910080.mdlus
+[2026-02-17 05:04:17,962][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.910080.pt
+[2026-02-17 05:08:09,953][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.915200.mdlus
+[2026-02-17 05:08:11,090][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.915200.pt
+[2026-02-17 05:11:50,177][main][INFO] - samples 920064.0  training_loss 106279.98 training_loss_running_mean 156096.64 learning_rate 0.00020000 total_sec 41906.9 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 05:11:51,543][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.920064.mdlus
+[2026-02-17 05:11:52,671][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.920064.pt
+[2026-02-17 05:15:44,634][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.925184.mdlus
+[2026-02-17 05:15:45,778][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.925184.pt
+[2026-02-17 05:19:24,845][main][INFO] - samples 930048.0  training_loss 107805.45 training_loss_running_mean 105669.16 learning_rate 0.00020000 total_sec 42361.6 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 05:19:26,242][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.930048.mdlus
+[2026-02-17 05:19:27,436][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.930048.pt
+[2026-02-17 05:23:19,408][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.935168.mdlus
+[2026-02-17 05:23:20,616][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.935168.pt
+[2026-02-17 05:26:59,596][main][INFO] - samples 940032.0  training_loss 104410.50 training_loss_running_mean 156494.35 learning_rate 0.00020000 total_sec 42816.4 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 05:27:00,879][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.940032.mdlus
+[2026-02-17 05:27:01,983][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.940032.pt
+[2026-02-17 05:30:53,911][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.945152.mdlus
+[2026-02-17 05:30:55,075][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.945152.pt
+[2026-02-17 05:34:34,163][main][INFO] - samples 950016.0  training_loss 103679.27 training_loss_running_mean 107010.94 learning_rate 0.00020000 total_sec 43270.9 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 05:34:35,548][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.950016.mdlus
+[2026-02-17 05:34:36,714][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.950016.pt
+[2026-02-17 05:38:28,659][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.955136.mdlus
+[2026-02-17 05:38:29,823][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.955136.pt
+[2026-02-17 05:42:08,915][main][INFO] - samples 960000.0  training_loss 121331.91 training_loss_running_mean 160771.86 learning_rate 0.00020000 total_sec 43725.7 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 05:42:10,281][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.960000.mdlus
+[2026-02-17 05:42:11,423][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.960000.pt
+[2026-02-17 05:46:03,322][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.965120.mdlus
+[2026-02-17 05:46:04,497][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.965120.pt
+[2026-02-17 05:49:55,034][main][INFO] - samples 970240.0  training_loss 106091.28 training_loss_running_mean 110695.24 learning_rate 0.00020000 total_sec 44191.8 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 05:49:56,413][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.970240.mdlus
+[2026-02-17 05:49:57,564][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.970240.pt
+[2026-02-17 05:53:37,838][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.975104.mdlus
+[2026-02-17 05:53:39,012][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.975104.pt
+[2026-02-17 05:57:29,549][main][INFO] - samples 980224.0  training_loss 108045.81 training_loss_running_mean 163403.89 learning_rate 0.00020000 total_sec 44646.3 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 05:57:30,927][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.980224.mdlus
+[2026-02-17 05:57:32,136][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.980224.pt
+[2026-02-17 06:01:12,479][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.985088.mdlus
+[2026-02-17 06:01:13,683][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.985088.pt
+[2026-02-17 06:05:04,284][main][INFO] - samples 990208.0  training_loss 105451.89 training_loss_running_mean 155463.72 learning_rate 0.00020000 total_sec 45101.1 sec_per_tick 11.5    sec_per_sample 0.05    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 06:05:05,662][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.990208.mdlus
+[2026-02-17 06:05:06,800][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.990208.pt
+[2026-02-17 06:08:47,124][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.995072.mdlus
+[2026-02-17 06:08:48,288][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.995072.pt
+[2026-02-17 06:12:39,056][main][INFO] - samples 1000192.0 training_loss 94277.03 training_loss_running_mean 101957.70 learning_rate 0.00020000 total_sec 45555.8 sec_per_tick 11.5    sec_per_sample 0.04    cpu_mem_gb 3.10   peak_gpu_mem_gb 52.59  peak_gpu_mem_reserved_gb 55.27 
+[2026-02-17 06:12:40,473][checkpoint][INFO] - Saved model state dictionary: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.1000192.mdlus
+[2026-02-17 06:12:41,726][checkpoint][INFO] - Saved training checkpoint: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/checkpoint.0.1000192.pt
+[2026-02-17 06:12:41,821][main][INFO] - Training Completed.
+[1;34mwandb[0m: 
+[1;34mwandb[0m: 🚀 View run [33mCorrDiff-Training-taiwan_regression_Process_0_02/16/26_17:33:19[0m at: [34mhttps://wandb.ai/daniel-w-uni/corrdiff-test/runs/56scjnre[0m
+=== JOB_STATISTICS ===
+=== current date     : Tue Feb 17 06:12:47 CET 2026
+= Job-ID             : 3345085 on alex
+= Job-Name           : CorrDiff
+= Job-Command        : /home/hpc/b214cb/b214cb18/corrdiff/jobs/alex-d.slurm
+= Initial workdir    : /home/hpc/b214cb/b214cb18/corrdiff
+= Queue/Partition    : a100
+= Slurm account      : b214cb with QOS=normal
+= Features           : a100_80
+= Requested resources:  for 1-00:00:00
+= Elapsed runtime    : 13:17:05
+= Total RAM usage    : 764.7 GiB of assigned  GiB (%)
+= Node list          : a0631
+= Subm/Elig/Start/End: 2026-02-16T16:55:40 / 2026-02-16T16:55:40 / 2026-02-16T16:55:42 / 2026-02-17T06:12:47
+======================
+=== Quota infos ======
+    Path              Used     SoftQ    HardQ    Gracetime  Filec    FileQ    FiHaQ    FileGrace    
+    atuin.rrze.uni-erlangen.de:/srv/home     7.5G     0.0K     0.0K        N/A      23                           N/A    
+    /lustre              4.0K     0.0K     0.0K        N/A       1       80K     250K        N/A    
+======================
+=== GPU utilization ==
+gpu_name, gpu_bus_id, pid, gpu_utilization [%], mem_utilization [%], max_memory_usage [MiB], time [ms]
+NVIDIA A100-SXM4-80GB, 00000000:0E:00.0, 2282546, 98 %, 57 %, 64762 MiB, 45582067 ms
+NVIDIA A100-SXM4-80GB, 00000000:13:00.0, 2282547, 99 %, 57 %, 64762 MiB, 45581398 ms
+NVIDIA A100-SXM4-80GB, 00000000:49:00.0, 2282548, 99 %, 57 %, 64762 MiB, 45580890 ms
+NVIDIA A100-SXM4-80GB, 00000000:4F:00.0, 2282549, 99 %, 57 %, 64762 MiB, 45581248 ms
