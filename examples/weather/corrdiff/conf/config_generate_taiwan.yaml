@@ -74,6 +74,8 @@ generation:
     # time stamps.
 
 
+    save_input: false
+    # Skip saving LR input data to reduce output file size by ~55%
     inference_mode: regression #laut claude für nur regression #beides ist all
     io:
         #falls nur regression flag setzen

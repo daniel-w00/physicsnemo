@@ -419,6 +419,7 @@ def main(cfg: DictConfig) -> None:
                                 image_lr.cpu(),
                                 time_index,
                                 dataset_index,
+                                cfg.generation.save_input,
                             )
                         )
                     else:
@@ -431,6 +432,7 @@ def main(cfg: DictConfig) -> None:
                             image_lr.cpu(),
                             time_index,
                             dataset_index,
+                            cfg.generation.save_input,
                         )
             end.record()
             end.synchronize()

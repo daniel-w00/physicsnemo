@@ -28,6 +28,8 @@ hr_mean_conditioning: true
 # Whether to use hr_mean_conditioning
 times_range: null
 # Time range to generate. Can be overridden.
+save_input: true  # von daniel hinzugefügt um inpt bei generate nicht zu speichern
+# Whether to save the LR input data in the output NetCDF file. Set to false to reduce file size.
 has_lead_time: False
 # Whether the model has lead time.
 
