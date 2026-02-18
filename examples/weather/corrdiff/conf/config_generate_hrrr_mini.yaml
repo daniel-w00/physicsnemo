@@ -52,14 +52,20 @@ dataset:
 
 # Generation parameters to specialize
 generation:
-    num_ensembles: 2
+    num_ensembles: 4
     # int, number of ensembles to generate per input
-    seed_batch_size: 1
+    seed_batch_size: 4
     # int, size of the batched inference
     times:
         - 2020-02-02T00:00:00
+        - 2020-02-03T00:00:00
+        - 2020-02-05T00:00:00
+        - 2020-02-06T00:00:00
+        - 2020-02-09T00:00:00
+        - 2020-02-15T00:00:00
     # List[str], time stamps in ISO 8601 format. Replace and list desired target
     # time stamps.
+    ### times_range sollte auch gehen aber letztes noch nciht hinbekommen
     io:
         res_ckpt_filename: /checkpoints/checkpoints_diffusion/EDMPrecondSuperResolution.0.8000000.mdlus
         # Path to checkpoint file for the diffusion model  

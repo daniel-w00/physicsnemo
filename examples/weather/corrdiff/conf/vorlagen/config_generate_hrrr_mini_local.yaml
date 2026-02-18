@@ -17,7 +17,7 @@
 hydra:
     job:
           chdir: false
-          name: generate_taiwan
+          name: generate_hrrr_mini
     run:
           dir: ./outputs/${hydra:job.name}
     searchpath:
@@ -26,7 +26,7 @@ hydra:
 # Base parameters for dataset, model, and generation
 defaults:
 
-    - dataset: cwb
+    - dataset: hrrr_mini
     # The dataset type for training.
     # Accepted values:
     #   `gefs_hrrr`: full GEFS-HRRR dataset for continental US.
@@ -45,44 +45,31 @@ defaults:
 # Modify or add below parameters that should be passed as argument to the
 # user-defined dataset class.
 dataset:
-    data_path: /data/cwa_dataset.zarr
-    train: False #todo ?
-    all_times: True
-
+    data_path: /data/hrrr_mini_train.nc
+    # Path to .nc data file
+    stats_path: /data/stats.json
+    # Path to json stats file
 
 # Generation parameters to specialize
 generation:
-    num_ensembles: 1
+    num_ensembles: 2
     # int, number of ensembles to generate per input
-    seed_batch_size: 1  # Anzahl Ensemble-Member pro Diffusions-Forward-Pass (höher = mehr VRAM, schneller)
+    seed_batch_size: 1
     # int, size of the batched inference
-    hr_mean_conditioning: false  # Regressionsausgabe als zusätzliche Konditionierung für Diffusion (nur bei inference_mode: all)
-    # Whether to use hr_mean_conditioning
-    times_range: ["2020-02-02T00:00:00", "2020-02-09T02:00:00", 3]
-      #  - "2020-02-02T00:00:00"  # Startzeitpunkt (inklusiv)
-       # - "2020-02-09T02:00:00"    # Endzeitpunkt (inklusiv)
-       # -  "3H"               # Frequenz (z.B. '1H' für stündlich)
-
-    times: null
-    # - 2021-02-02T00:00:00
-    # - 2021-03-02T00:00:00
-    # - 2021-04-02T00:00:00
-    # hurricane
-     #    - 2021-09-12T00:00:00
-    #- 2021-09-12T12:00:00
+    times:
+        - 2020-02-02T00:00:00
     # List[str], time stamps in ISO 8601 format. Replace and list desired target
     # time stamps.
-
-
-    inference_mode: regression #laut claude für nur regression #beides ist all
     io:
-        #falls nur regression flag setzen
-        res_ckpt_filename:  /checkpoints/taiwan/pure_lr5000/checkpoints_diffusion/EDMPrecondSuperResolution.0.1300224.mdlus
+        res_ckpt_filename: /mnt/c/mydata/_Masterarbeit/repos/physicsnemo/examples/weather/corrdiff/checkpoints/checkpoints_diffusion/EDMPrecondSuperResolution.0.8000000.mdlus
         # Path to checkpoint file for the diffusion model  
-        reg_ckpt_filename: /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.1000192.mdlus
+        reg_ckpt_filename:  /mnt/c/mydata/_Masterarbeit/repos/physicsnemo/examples/weather/corrdiff/checkpoints/regression/UNet.0.2000128.mdlus
         # Path to checkpoint filename for the mean predictor model
-        ##selbst hinzugefügt  überschreibt corrdiff_output.n
-        output_filename: "output/gen_taiwan/regonly-2021-02-02-1week-3h.nc"
+        output_filename: "output/hrrr_mini_generierte_daten.nc"
+    times_range:
+      start: "2020-02-02T00:00:00"  # Startzeitpunkt (inklusiv)
+      end: "2020-02-03T02:00:00"    # Endzeitpunkt (inklusiv)
+      frequency: "1H"               # Frequenz (z.B. '1H' für stündlich)
 
 # Parameters for wandb logging
 wandb:
