@@ -15,15 +15,11 @@
 # limitations under the License.
 
 import contextlib
-from concurrent.futures import ThreadPoolExecutor, ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
 import hydra
-from omegaconf import OmegaConf, DictConfig
-from hydra.utils import to_absolute_path
-import torch
-import torch._dynamo
-from torch.distributed import gather
+import netCDF4 as nc
 import numpy as np
 import nvtx
 import netCDF4 as nc
@@ -46,8 +42,7 @@ from helpers.generate_helpers import (
     get_dataset_and_sampler,
     save_images,
 )
-from helpers.train_helpers import set_patch_shape
-from datasets.dataset import register_dataset
+from physicsnemo.utils.logging import PythonLogger, RankZeroLoggingWrapper
 
 
 @hydra.main(version_base="1.2", config_path="conf", config_name="config_generate")
@@ -186,14 +181,16 @@ def main(cfg: DictConfig) -> None:
     if cfg.sampler.type == "deterministic":
         sampler_fn = partial(
             deterministic_sampler,
-            num_steps=cfg.sampler.num_steps,
+            num_steps=getattr(cfg.sampler, "num_steps", 9),
             # num_ensembles=cfg.generation.num_ensembles,
             solver=cfg.sampler.solver,
             patching=patching,
         )
     elif cfg.sampler.type == "stochastic":
         sampler_fn = partial(
-            stochastic_sampler, patching=patching, num_steps=cfg.sampler.num_steps
+            stochastic_sampler,
+            patching=patching,
+            num_steps=getattr(cfg.sampler, "num_steps", 18),
         )
     else:
         raise ValueError(f"Unknown sampling method {cfg.sampling.type}")
