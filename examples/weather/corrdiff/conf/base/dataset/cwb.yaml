@@ -36,3 +36,5 @@ max_path: null
 global_means_path: null
 # Path to global stds of the data
 global_stds_path: null
+# Path to AlphaEarth embedding zarr (optional; if set, adds 64 static embedding channels)
+embedding_path: null
