@@ -60,6 +60,7 @@ defaults:
 # user-defined dataset class.
 dataset:
     data_path: /data/cwa_dataset.zarr
+    embedding_path: embeddings/alphaearth/taiwan/samesize/2024-conservative.zarr
 
 # Training parameters
 training:

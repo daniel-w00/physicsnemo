@@ -23,6 +23,7 @@ import cftime
 import cv2
 from hydra.utils import to_absolute_path
 import numpy as np
+import torch
 import zarr
 
 from datasets.base import ChannelMetadata, DownscalingDataset
@@ -357,6 +358,7 @@ class ZarrDataset(DownscalingDataset):
         global_means_path=None,
         global_stds_path=None,
         normalization="v1",
+        embedding_path=None,
     ):
         if not all_times:
             self._dataset = (
@@ -389,6 +391,17 @@ class ZarrDataset(DownscalingDataset):
             else None
         )
         self.normalization = normalization
+
+        # Load AlphaEarth static embeddings if provided
+        self.alpha_earth_emb = None
+        if embedding_path is not None:
+            emb_path = to_absolute_path(embedding_path)
+            emb_zarr = zarr.open(emb_path, mode="r")
+            emb = emb_zarr["alpha_earth"][:]  # (64, 450, 450), float32
+            emb = np.where(np.isnan(emb), 0.0, emb)
+            emb = emb[:, :img_shape_y, :img_shape_x].astype(np.float32)  # (64, 448, 448)
+            self.alpha_earth_emb = torch.as_tensor(emb)
+            logger.info("Loaded AlphaEarth embeddings: shape %s", self.alpha_earth_emb.shape)
 
     def info(self):
         """Check if the given time is not in the year 2021."""
@@ -436,12 +449,18 @@ class ZarrDataset(DownscalingDataset):
             target, "tar", *reshape_args, normalize=False
         )  # 3x720x1440
 
+        if self.alpha_earth_emb is not None:
+            input = torch.cat([input, self.alpha_earth_emb], dim=0)
+
         return target, input
 
     def input_channels(self):
         """Metadata for the input channels. A list of dictionaries, one for each channel"""
         in_channels = self._dataset.input_channels()
         in_channels = [in_channels[i] for i in self.in_channels]
+        if self.alpha_earth_emb is not None:
+            emb_channels = [ChannelMetadata(name=f"alpha_earth_{i}", level="") for i in range(64)]
+            in_channels = in_channels + emb_channels
         return in_channels
 
     def output_channels(self):
@@ -514,7 +533,7 @@ class ZarrDataset(DownscalingDataset):
         return x
 
 
-def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, **kwargs):
+def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, embedding_path=None, **kwargs):
     """Get a Zarr dataset for training or evaluation."""
     data_path = to_absolute_path(data_path)
     get_target_normalization = {
@@ -526,5 +545,6 @@ def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, **kwargs
         data_path, get_target_normalization=get_target_normalization
     )
     return ZarrDataset(
-        dataset=zdataset, normalization=normalization, all_times=all_times, **kwargs
+        dataset=zdataset, normalization=normalization, all_times=all_times,
+        embedding_path=embedding_path, **kwargs
     )
