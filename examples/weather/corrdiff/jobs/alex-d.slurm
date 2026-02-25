@@ -28,17 +28,17 @@ echo ${CUDA_VISIBLE_DEVICES}
 source $HOME/.job_secrets
 
 DATASET_SRC=/anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset
+DATASET_TAR=/anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset.tar
 COPY_TO_TMPDIR=true  # set to false to use dataset directly from source
 
 
 if [ "$COPY_TO_TMPDIR" = true ]; then
-  echo "Copying dataset to $TMPDIR..."
+  echo "Extracting dataset to $TMPDIR..."
   START=$(date +%s)
 
-  #todo change to tar xf "$WORK/dataset.tar" "$TMPDIR"
-  cp -r $DATASET_SRC $TMPDIR/
+  tar xf "$DATASET_TAR" -C "$TMPDIR"
   END=$(date +%s)
-  echo "Copy done in $((END - START)) seconds."
+  echo "Extraction done in $((END - START)) seconds."
   DATA_DIR=$TMPDIR/cwa_dataset
 else
   echo "Using dataset directly from $DATASET_SRC"
