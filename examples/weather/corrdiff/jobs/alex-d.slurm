@@ -2,7 +2,7 @@
 #SBATCH -J CorrDiff
 #SBATCH --ntasks=1
 #SBATCH --time=24:00:00
-#SBATCH --gres=gpu:a100:4
+#SBATCH --gres=gpu:a100:8
 #SBATCH --partition=a100
 #SBATCH --output=output/job-%j.out
 #SBATCH --mail-type=ALL
@@ -10,7 +10,7 @@
 #SBATCH --constraint=a100_80
 
 # --- GPU config: set to 1 or 4 ---
-NUM_GPUS=4
+NUM_GPUS=8
 
 set -x  # Zeigt jeden Befehl an, bevor er ausgeführt wird
 
@@ -28,11 +28,14 @@ echo ${CUDA_VISIBLE_DEVICES}
 source $HOME/.job_secrets
 
 DATASET_SRC=/anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset
-COPY_TO_TMPDIR=false  # set to false to use dataset directly from source
+COPY_TO_TMPDIR=true  # set to false to use dataset directly from source
+
 
 if [ "$COPY_TO_TMPDIR" = true ]; then
   echo "Copying dataset to $TMPDIR..."
   START=$(date +%s)
+
+  #todo change to tar xf "$WORK/dataset.tar" "$TMPDIR"
   cp -r $DATASET_SRC $TMPDIR/
   END=$(date +%s)
   echo "Copy done in $((END - START)) seconds."

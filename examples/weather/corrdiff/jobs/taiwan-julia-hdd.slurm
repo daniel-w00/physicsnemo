@@ -21,6 +21,8 @@ echo "CUDA Devices: ${CUDA_VISIBLE_DEVICES}"
 echo "Starte Training im Apptainer-Container..."
 
 
+#todo add tar xf "$WORK/dataset.tar" "$TMPDIR" for copying
+
 srun apptainer run --nv \
     --bind /data/42-julia-hpc-rz-lsx/sih25nq/downscaling/CorrDiff/cwa_dataset:/data \
     --bind ~/data/checkpoints/taiwan:/checkpoints/ \

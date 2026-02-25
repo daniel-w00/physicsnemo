@@ -15,7 +15,7 @@ export APPTAINERENV_CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES}
 export APPTAINERENV_WANDB_API_KEY=${WANDB_API_KEY}
 echo "CUDA Devices: ${CUDA_VISIBLE_DEVICES}"
 
-# --- ANFANG: Lokale Daten einrichten ---
+
 
 # 1. Pfade
 # Die ZIP-Datei, die du gefunden hast!
@@ -27,17 +27,9 @@ mkdir -p $LOCAL_DIR
 
 echo "Lokales Verzeichnis: $LOCAL_DIR"
 
-# 2. Cleanup-Funktion (KRITISCH!)
-function cleanup {
-    echo "Job beendet. Räume $LOCAL_DIR auf..."
-    rm -rf $LOCAL_DIR
-    echo "Cleanup abgeschlossen."
-}
-trap cleanup EXIT
-
 
 # 3. Daten kopieren (mit sauberem 60-Sekunden-Monitoring)
-echo "Kopiere 1TB-Archiv (cwa_dataset.zip) auf lokale SSD..."
+echo "Kopiere) auf lokale SSD..."
 echo "Starte Kopiervorgang (cp) im Hintergrund."
 
 # Starte das 'dumme' Kopieren im Hintergrund (&)
@@ -47,7 +39,7 @@ CP_PID=$! # Speichere die Prozess-ID (PID) des Kopiervorgangs
 echo "Kopiervorgang läuft (PID: $CP_PID). Überwache Fortschritt alle 60 Sekunden:"
 
 # Schleife, die läuft, solange der cp-Prozess (mit der PID) existiert
-# 'kill -0 $PID' prüft, ob der Prozess noch läuft, ohne ihn zu beenden
+# 'kill -0 $PID' prüft, ob der Prozesch läuft, ohne ihn zu beenden
 while kill -0 $CP_PID 2>/dev/null; do
     # Gib die aktuelle Dateigröße der Zieldatei aus
     du -h $LOCAL_DIR/cwa_dataset.zip
@@ -71,17 +63,12 @@ rm $LOCAL_DIR/cwa_dataset.zip
 
 # --- ENDE: Lokale Daten einrichten ---
 
-# 5. Training starten
+# Training starten
 echo "Starte Training im Apptainer-Container..."
 
-# WICHTIG: Prüfe, wie der Ordner *innerhalb* der Zip-Datei heißt.
+
 BIND_PATH="$LOCAL_DIR/cwa_dataset"
-#
-# FALL 3: Wenn die Zip-Datei den Ordner nicht enthält, sondern direkt die
-# Zarr-Struktur, dann ist der BIND_PATH einfach $LOCAL_DIR.
-# Das ist aber unwahrscheinlich.
-#
-# Du kannst das mit 'unzip -l cwa_dataset.zip | head' prüfen.
+
 
 echo "Binde $BIND_PATH an /data im Container."
 
