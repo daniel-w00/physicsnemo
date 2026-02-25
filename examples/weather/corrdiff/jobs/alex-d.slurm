@@ -47,9 +47,10 @@ fi
 
 export HYDRA_FULL_ERROR=1
 
-srun apptainer run --nv --bind $DATA_DIR:/data/ \
+#try without srun, dann nicht doppelt, srun hier nur notwendig wenn mehrere noes
+apptainer run --nv --bind $DATA_DIR:/data/ \
                         --bind $WORK/checkpoints:/checkpoints/ \
-                        $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=$NUM_GPUS  $HOME/corrdiff/train.py --config-name config_training_taiwan_diffusion-alex
+                        $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=$NUM_GPUS  $HOME/corrdiff/train.py --config-name config_training_taiwan_regression-alex
 
 
 #srun apptainer run --nv --bind /anvme/workspace/b214cb13-ecodata/downscaling/:/data/ --bind $WORK/checkpoints:/checkpoints/ $WORK/own_corrdiff.sif python -u $HOME/corrdiff/generate.py --config-name

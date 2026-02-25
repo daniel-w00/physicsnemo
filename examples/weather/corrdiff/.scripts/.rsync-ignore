@@ -8,8 +8,8 @@ localdata/
 output/
 /wandb/
 /output/
+/checkpoints/
 
-/checkpoints_regression/
 /tensorboard/
 
 # Python-Kram

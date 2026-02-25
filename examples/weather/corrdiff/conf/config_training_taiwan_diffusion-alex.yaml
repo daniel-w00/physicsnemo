@@ -62,13 +62,14 @@ dataset:
     data_path: /data/cwa_dataset.zarr
 
 model:
-    hr_mean_conditioning: false
+  #  hr_mean_conditioning: false  #old default
+    hr_mean_conditioning: true
   # High-res mean (regression's output) as additional condition
 
 # Training parameters
 training:
     hp:
-        training_duration:  3_000_000  #200_000_000
+        training_duration:  1_500_000  #200_000_000
         # Training duration based on the number of processed samples
         lr_rampup: 50_000  #10_000_000
         # Rampup for learning rate, in number of samples
@@ -77,13 +78,13 @@ training:
         batch_size_per_gpu: 4 #default ist auto , 1 hatte 20% von 80gb
 
     io:
-        regression_checkpoint_path:  /checkpoints/taiwan/pure_lr5000/checkpoints_regression/UNet.0.1000192.mdlus
+        regression_checkpoint_path:  /checkpoints/taiwan/pure_v1/checkpoints_regression/UNet.0.1000192.mdlus
         # Path to load the regression checkpoint
 
-        print_progress_freq: 1_024
+        print_progress_freq: 2_048
         save_n_recent_checkpoints: -1
         save_checkpoint_freq: 100_000
-        checkpoint_dir: /checkpoints/taiwan/pure_lr5000
+        checkpoint_dir: /checkpoints/taiwan/pure_v1
 
 # wenn validation auftaucht dann wird validiert
 #Wenn kein validation:-Block in der Config steht, wird keine Validierung durchgeführt;
