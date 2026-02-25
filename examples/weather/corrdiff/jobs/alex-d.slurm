@@ -1,8 +1,8 @@
 #!/bin/bash -l
 #SBATCH -J CorrDiff
 #SBATCH --ntasks=1
-#SBATCH --time=24:00:00
-#SBATCH --gres=gpu:a100:8
+#SBATCH --time=1:00:00
+#SBATCH --gres=gpu:a100:4
 #SBATCH --partition=a100
 #SBATCH --output=output/job-%j.out
 #SBATCH --mail-type=ALL
@@ -10,7 +10,7 @@
 #SBATCH --constraint=a100_80
 
 # --- GPU config: set to 1 or 4 ---
-NUM_GPUS=8
+NUM_GPUS=4
 
 set -x  # Zeigt jeden Befehl an, bevor er ausgeführt wird
 
@@ -29,7 +29,7 @@ source $HOME/.job_secrets
 
 DATASET_SRC=/anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset
 DATASET_TAR=/anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset.tar
-COPY_TO_TMPDIR=true  # set to false to use dataset directly from source
+COPY_TO_TMPDIR=false  # set to false to use dataset directly from source
 
 
 if [ "$COPY_TO_TMPDIR" = true ]; then

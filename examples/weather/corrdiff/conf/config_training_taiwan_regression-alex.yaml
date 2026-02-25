@@ -72,9 +72,10 @@ training:
         total_batch_size: 256  # normal 256
         batch_size_per_gpu: 4 #defaultt ist auto , 1 hatte 20% von 80gb
     io:
-      print_progress_freq: 10_000
-      save_n_recent_checkpoints: 5
-      checkpoint_dir: /checkpoints/taiwan/pure_lr5000
+      print_progress_freq: 5_096
+      save_n_recent_checkpoints: 10
+      checkpoint_dir: /checkpoints/taiwan/alpha-v1
+      save_checkpoint_freq: 50_000
 
 # Parameters for wandb logging
 wandb:
