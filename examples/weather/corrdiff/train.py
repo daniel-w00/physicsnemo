@@ -128,6 +128,8 @@ def main(cfg: DictConfig) -> None:
             mode=cfg.wandb.mode,
             config=OmegaConf.to_container(cfg),
             results_dir=cfg.wandb.results_dir,
+#            resume="allow",
+ #           wandb_id="zuxek7d4",
         )
 
 
