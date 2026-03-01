@@ -9,6 +9,7 @@ output/
 /wandb/
 /output/
 /checkpoints/
+downloaded/
 
 /tensorboard/
 
