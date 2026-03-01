@@ -5,7 +5,7 @@
 #SBATCH --gres=gpu:1
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=daniel.wilhelm@stud-mail.uni-wuerzburg.de
-#SBATCH --output=output/job-%j.out
+#SBATCH --output=output/julia2/jobout/job-%j.out
 #SBATCH qos=normal
 
 source ~/.job_secrets

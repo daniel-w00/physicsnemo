@@ -1,12 +1,13 @@
 #!/bin/bash
 #SBATCH -J PrecipitationDownscaling
 #SBATCH -c 16
-#SBATCH -p standard
+#SBATCH -p h100
 #SBATCH --gres=gpu:2
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=daniel.wilhelm@stud-mail.uni-wuerzburg.de
-#SBATCH --output=output/job-%j.out
-#SBATCH --qos=prof-x
+#SBATCH --output=output/julia2/jobout/job-%j.out
+#SBATCH --qos=normal
+#SBATCH --time=16:59:00
 
 NUM_GPUS=2
 
@@ -21,11 +22,11 @@ echo ${CUDA_VISIBLE_DEVICES}
 
 #srun apptainer run --nv --bind ~/datatemp/CorrDiff:/data ~/corrdiff.sif python -u ~/bjerknes/corrdiff/train.py --config-name $1 \
 
-srun apptainer run --nv --bind ~/data/hrrr_mini:/data --bind ~/data/checkpoints:/checkpoints/ ~/apptainer/new_corrdiff.sif python -u ~/bjerknes/train.py --config-name $1 \
+#srun apptainer run --nv --bind ~/data/hrrr_mini:/data --bind ~/data/checkpoints:/checkpoints/ ~/apptainer/new_corrdiff.sif python -u ~/bjerknes/train.py --config-name $1 \
 
 DATASET_SRC=/data/42-julia-hpc-rz-lsx/sih25nq/downscaling/CorrDiff/cwa_dataset
 DATASET_TAR=/data/42-julia-hpc-rz-lsx/s373395/datasets/cwa_dataset.tar
-COPY_TO_TMPDIR=false  # set to false to use dataset directly from source
+COPY_TO_TMPDIR=true  # set to false to use dataset directly from source
 
 
 if [ "$COPY_TO_TMPDIR" = true ]; then
@@ -45,6 +46,6 @@ export HYDRA_FULL_ERROR=1
 
 
 # julia old command
-apptainer run --nv --bind /tmp/:/data --bind $HOME/checkpoints:/checkpoints/   \
-   $HOME/apptainer/corrdiff_10_02.sif torchrun torchrun --nproc_per_node=$NUM_GPUS   \
-   ~/bjerknes/corrdiff/train.py --config-nameconfig_training_taiwan_diffusion-alex
+apptainer run --nv --bind $DATA_DIR:/data/ --bind $HOME/checkpoints:/checkpoints/   \
+   $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=$NUM_GPUS   \
+   ~/bjerknes/train.py --config-name config_training_taiwan_diffusion-alex

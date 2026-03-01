@@ -4,7 +4,7 @@
 #SBATCH --time=0:59:00
 #SBATCH --gres=gpu:a40:1
 #SBATCH --partition=a40
-#SBATCH --output=output/jobout/job-%j.out
+#SBATCH --output=output/alex/jobout/job-%j.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user "daniel.wilhelm@stud-mail.uni-wuerzburg.de"
 

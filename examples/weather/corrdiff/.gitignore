@@ -1,1 +1,16 @@
 **/*.zarr
+
+# Large data and model outputs
+output/
+localdata/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# WandB logs
+wandb/
+
+# Slurm output files
+*.out
