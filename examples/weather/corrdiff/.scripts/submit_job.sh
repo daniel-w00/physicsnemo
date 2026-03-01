@@ -1,62 +1,62 @@
 #!/bin/bash
 echo "--- 🚀 Starte Job auf Cluster... ---"
 
-# --- Deine Cluster-Variablen ---
-CLUSTER_USER="s373395"
-CLUSTER_ADRESSE="julia2.hpc.uni-wuerzburg.de"
-CLUSTER_PFAD="~/bjerknes"
-SLURM_SCRIPT_DIR="jobs" # Nur das Verzeichnis, der Dateiname kommt variabel
+# --- SCHRITT 1: CLUSTER-AUSWAHL ---
+CLUSTER_CHOICE="$1"
 
-# --- ⚠️ HINWEIS ZU PYCHARM ---
-# Wenn du das Skript in PyCharm OHNE Argumente startest,
-# wird es bei 'read' hängenbleiben, da die Konsole
-# dort oft keine interaktiven Eingaben erlaubt!
-#
-# EMPFEHLUNG: Trage die Argumente in PyCharm in der
-# "Run Configuration" -> "Program arguments" ein.
-# z.B.: julia-d.slurm first_config_training
-# ---
-
-
-# --- SCHRITT 0: SLURM-SKRIPT-NAME (Hybrid-Ansatz) ---
-if [ -n "$1" ]; then
-    # Fall 1: Argument 1 wurde übergeben
-    SLURM_SCRIPT_NAME="$1"
-    echo "--- Info: Verwende Slurm-Skript aus Argument 1: $SLURM_SCRIPT_NAME"
-else
-    # Fall 2: Argument 1 fehlt, frage interaktiv
+if [ -z "$CLUSTER_CHOICE" ]; then
     echo "--- EINGABE ERFORDERLICH ---"
-    read -p "Name des Slurm-Skripts (z.B. julia-d.slurm): " SLURM_SCRIPT_NAME
+    echo "Verfügbare Cluster: julia, alex"
+    read -p "Welcher Cluster soll genutzt werden?: " CLUSTER_CHOICE
 fi
 
-
-# --- SCHRITT 0: CONFIG-NAME (Hybrid-Ansatz) ---
-if [ -n "$2" ]; then
-    # Fall 1: Argument 2 wurde übergeben
-    CONFIG_NAME="$2"
-    echo "--- Info: Verwende Config-Name aus Argument 2: $CONFIG_NAME"
+# Cluster-spezifische Konfigurationen
+if [ "$CLUSTER_CHOICE" == "alex" ]; then
+    SSH_TARGET="alex"
+    CLUSTER_PFAD="~/corrdiff"
+elif [ "$CLUSTER_CHOICE" == "julia" ] || [ "$CLUSTER_CHOICE" == "julia2" ]; then
+    SSH_TARGET="s373395@julia2.hpc.uni-wuerzburg.de"
+    CLUSTER_PFAD="~/bjerknes"
 else
-    # Fall 2: Argument 2 fehlt, frage interaktiv
-    if [ -z "$1" ]; then
-        # Nur anzeigen, wenn wir schon im interaktiven Modus sind
-        echo "--- EINGABE ERFORDERLICH ---"
-    fi
-    read -p "Name der Config (z.B. first_config_...): " CONFIG_NAME
+    echo "--- ❌ FEHLER: Unbekannter Cluster '$CLUSTER_CHOICE'. Erlaubt sind 'julia' oder 'alex'. ---"
+    exit 1
 fi
 
-# --- Gültigkeitsprüfung ---
-if [ -z "$SLURM_SCRIPT_NAME" ] || [ -z "$CONFIG_NAME" ]; then
-    echo "--- ❌ FEHLER: Slurm-Skript oder Config-Name sind leer! ---"
+SLURM_SCRIPT_DIR="jobs"
+echo "--- 🎯 Ziel: $CLUSTER_CHOICE ($SSH_TARGET) im Pfad $CLUSTER_PFAD ---"
+
+# --- SCHRITT 2: SLURM-SKRIPT (Pflicht) ---
+SLURM_SCRIPT_NAME="$2"
+
+if [ -z "$SLURM_SCRIPT_NAME" ]; then
+    read -p "Name des Slurm-Skripts (z.B. job.slurm): " SLURM_SCRIPT_NAME
+fi
+
+if [ -z "$SLURM_SCRIPT_NAME" ]; then
+    echo "--- ❌ FEHLER: Slurm-Skript darf nicht leer sein! ---"
     exit 1
+fi
+
+# --- SCHRITT 3: CONFIG-NAME (Optional) ---
+CONFIG_NAME="$3"
+
+# Nur interaktiv fragen, wenn das Skript komplett ohne Parameter (oder nur mit Cluster) aufgerufen wurde
+if [ -z "$CONFIG_NAME" ] && [ -z "$3" ] && [ -z "$2" ]; then
+    read -p "Name der Config (Optional, Enter zum Überspringen): " CONFIG_NAME
 fi
 # ---------------------------------------------------------------------
 
 echo ""
-echo "--- Starte Slurm-Job: $SLURM_SCRIPT_NAME mit Config: $CONFIG_NAME ---"
+if [ -z "$CONFIG_NAME" ]; then
+    echo "--- Starte Slurm-Job: $SLURM_SCRIPT_NAME (OHNE Config) ---"
+    SBATCH_CMD="cd $CLUSTER_PFAD && sbatch $SLURM_SCRIPT_DIR/$SLURM_SCRIPT_NAME"
+else
+    echo "--- Starte Slurm-Job: $SLURM_SCRIPT_NAME mit Config: $CONFIG_NAME ---"
+    SBATCH_CMD="cd $CLUSTER_PFAD && sbatch $SLURM_SCRIPT_DIR/$SLURM_SCRIPT_NAME $CONFIG_NAME"
+fi
 
-# --- SCHRITT 1: Job starten und Job-ID einfangen ---
-# Die Variablen werden hier kombiniert:
-SBATCH_OUTPUT=$(ssh "$CLUSTER_USER@$CLUSTER_ADRESSE" "cd $CLUSTER_PFAD && sbatch $SLURM_SCRIPT_DIR/$SLURM_SCRIPT_NAME $CONFIG_NAME")
+# --- SCHRITT 4: Job starten und Job-ID einfangen ---
+SBATCH_OUTPUT=$(ssh "$SSH_TARGET" "$SBATCH_CMD")
 
 if [[ $SBATCH_OUTPUT != "Submitted batch job "* ]]; then
     echo "--- ❌ FEHLER: Job-Einreichung fehlgeschlagen! ---"
@@ -67,64 +67,34 @@ fi
 JOB_ID=$(echo $SBATCH_OUTPUT | awk '{print $NF}')
 echo "--- ✅ Job erfolgreich eingereicht. JOB ID: $JOB_ID ---"
 
+# --- SCHRITT 5: Status und Log-Pfad EINMALIG abfragen ---
+echo "--- 🔍 Hole Job-Details... ---"
+# Wir holen Queue-Infos und den Log-Pfad in einem einzigen SSH-Aufruf
+JOB_INFO=$(ssh "$SSH_TARGET" "
+    squeue -j $JOB_ID -h -o '%T|%r|%S'
+    scontrol show job $JOB_ID | grep 'StdOut=' | cut -d'=' -f2
+")
 
-# --- SCHRITT 2: Job-Status überwachen ---
+# Ausgabe parsen
+JOB_STATE=$(echo "$JOB_INFO" | sed -n '1p' | cut -d'|' -f1)
+JOB_REASON=$(echo "$JOB_INFO" | sed -n '1p' | cut -d'|' -f2)
+JOB_START=$(echo "$JOB_INFO" | sed -n '1p' | cut -d'|' -f3)
+LOG_PATH=$(echo "$JOB_INFO" | sed -n '2p')
 
-echo ""
-echo "--- ⏱️  Überwache Job $JOB_ID ... ---"
-echo "--- 💡 HINWEIS: Drücke 'Strg+C' (Ctrl+C), um diese Überwachung abzubrechen. ---"
-echo "--- (Der Job auf dem Cluster läuft trotzdem weiter!) ---"
-echo ""
-
-# Setze den Timer auf 0, JETZT, wo die Überwachung beginnt
-SECONDS=0
-
-# Prüfe den Status ein erstes Mal
-JOB_STATUS=$(ssh "$CLUSTER_USER@$CLUSTER_ADRESSE" "squeue -j $JOB_ID -h")
-
-# Falls der Job schon fertig ist
-if [ -z "$JOB_STATUS" ]; then
-    echo "--- 🎉 Job $JOB_ID ist bereits beendet. ---"
-    exit 0
+echo "   ... Status: $JOB_STATE"
+if [ "$JOB_STATE" == "PENDING" ]; then
+    echo "   ... Grund für Warten: $JOB_REASON"
+    echo "   ... Geplanter Start:  $JOB_START"
 fi
+echo "   ... Erwarteter Log-Pfad: $LOG_PATH"
 
-# --- Phase 1: Schnelle Überwachung (solange $SECONDS < 50) ---
-echo "--- Starte schnelle Überwachung (alle 5 Sekunden)... ---"
+# --- SCHRITT 6: Verbinden und warten ---
+echo ""
+echo "--- 📺 Verbinde zum Live-Log... (Wartet automatisch, bis der Job startet) ---"
+echo "--- 💡 HINWEIS: Drücke 'Strg+C', um die Ansicht zu beenden. Der Job läuft sicher weiter! ---"
+echo "---------------------------------------------------"
 
-# Wir nutzen 'while' anstatt 'for', um die Zeit flexibel zu prüfen
-while [ $SECONDS -lt 50 ]; do
-    # Prüfen, ob der Job überhaupt noch läuft
-    if [ -z "$JOB_STATUS" ]; then
-        break # Job ist fertig, springe aus der 5s-Schleife raus
-    fi
+ssh -o ServerAliveInterval=60 -t "$SSH_TARGET" "tail -n 50 -F \"$LOG_PATH\""
 
-    JOB_STATE=$(echo $JOB_STATUS | awk '{print $5}')
-    # Hier verwenden wir $SECONDS für die Zeitangabe
-    echo "   ... Status: $JOB_STATE (Zeit: ~${SECONDS}s)"
-
-    sleep 5
-
-    JOB_STATUS=$(ssh "$CLUSTER_USER@$CLUSTER_ADRESSE" "squeue -j $JOB_ID -h")
-done
-
-
-# --- Phase 2: Normale Überwachung (alle 30s) ---
-
-# Prüfen, ob der Job nach Phase 1 noch läuft
-if [ -z "$JOB_STATUS" ]; then
-    echo "--- 🎉 Job $JOB_ID ist beendet (während der schnellen Phase). ---"
-    exit 0
-fi
-
-echo "--- Wechsle zu normaler Überwachung (alle 30 Sekunden)... ---"
-while [ -n "$JOB_STATUS" ]; do
-    JOB_STATE=$(echo $JOB_STATUS | awk '{print $5}')
-    # Hier verwenden wir $SECONDS für die Zeitangabe
-    echo "   ... Status: $JOB_STATE (Zeit: ~${SECONDS}s)"
-
-    sleep 30
-
-    JOB_STATUS=$(ssh "$CLUSTER_USER@$CLUSTER_ADRESSE" "squeue -j $JOB_ID -h")
-done
-
-echo "--- 🎉 Job $JOB_ID ist beendet (Zeit: ~${SECONDS}s). ---"
+echo "---------------------------------------------------"
+echo "--- 👋 Stream beendet. ---"
