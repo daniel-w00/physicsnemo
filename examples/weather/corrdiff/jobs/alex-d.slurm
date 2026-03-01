@@ -47,6 +47,8 @@ fi
 
 export HYDRA_FULL_ERROR=1
 
+apptainer exec $HOME/apptainer/corrdiff_10_02.sif python3 -c "import zarr; print('zarr version:', zarr.__version__)"
+
 #try without srun, dann nicht doppelt, srun hier nur notwendig wenn mehrere noes
 apptainer run --nv --bind $DATA_DIR:/data/ \
                         --bind $WORK/checkpoints:/checkpoints/ \

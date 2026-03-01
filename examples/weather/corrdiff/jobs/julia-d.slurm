@@ -44,6 +44,7 @@ fi
 
 export HYDRA_FULL_ERROR=1
 
+apptainer exec $HOME/apptainer/corrdiff_10_02.sif python3 -c "import zarr; print('zarr version:', zarr.__version__)"
 
 # julia old command
 apptainer run --nv --bind $DATA_DIR:/data/ --bind $HOME/checkpoints:/checkpoints/   \
