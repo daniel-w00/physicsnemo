@@ -12,10 +12,14 @@ fi
 
 # Cluster-spezifische Konfigurationen
 if [ "$CLUSTER_CHOICE" == "alex" ]; then
+   # your SSH-Alias oder user@host
     SSH_TARGET="alex"
+      #your  path on the cluster
     CLUSTER_PFAD="~/corrdiff"
 elif [ "$CLUSTER_CHOICE" == "julia" ] || [ "$CLUSTER_CHOICE" == "julia2" ]; then
+     # your SSH-Alias oder user@host
     SSH_TARGET="s373395@julia2.hpc.uni-wuerzburg.de"
+    #your  path on the cluster
     CLUSTER_PFAD="~/bjerknes"
 else
     echo "--- ❌ FEHLER: Unbekannter Cluster '$CLUSTER_CHOICE'. Erlaubt sind 'julia' oder 'alex'. ---"
