@@ -41,7 +41,7 @@ fi
 CONFIG_NAME="$3"
 
 # Nur interaktiv fragen, wenn das Skript komplett ohne Parameter (oder nur mit Cluster) aufgerufen wurde
-if [ -z "$CONFIG_NAME" ] && [ -z "$3" ] && [ -z "$2" ]; then
+if [ -z "$3" ] && [ -z "$2" ]; then
     read -p "Name der Config (Optional, Enter zum Überspringen): " CONFIG_NAME
 fi
 # ---------------------------------------------------------------------
@@ -64,7 +64,7 @@ if [[ $SBATCH_OUTPUT != "Submitted batch job "* ]]; then
     exit 1
 fi
 
-JOB_ID=$(echo $SBATCH_OUTPUT | awk '{print $NF}')
+JOB_ID=$(echo "$SBATCH_OUTPUT" | awk '{print $NF}')
 echo "--- ✅ Job erfolgreich eingereicht. JOB ID: $JOB_ID ---"
 
 # --- SCHRITT 5: Status und Log-Pfad EINMALIG abfragen ---
@@ -125,7 +125,12 @@ ssh -o ServerAliveInterval=60 -t "$SSH_TARGET" "
     # --- Phase 2: Warte auf Log-Datei ---
     echo '⏳ Warte auf Log-Datei...'
     while [ ! -f \"$LOG_PATH\" ]; do
-        sleep 2
+        sleep 5
+        if ! squeue -j $JOB_ID -h 2>/dev/null | grep -q .; then
+            [ -f \"$LOG_PATH\" ] && break
+            echo '⚠️  Job nicht mehr in Queue und Log-Datei fehlt. Abbruch.'
+            exit 1
+        fi
     done
 
     echo '✅ Log-Datei gefunden! Starte Stream...'
@@ -134,6 +139,7 @@ ssh -o ServerAliveInterval=60 -t "$SSH_TARGET" "
     # --- Phase 3: Stream bis Job fertig ---
     tail -n 50 -f \"$LOG_PATH\" &
     TAIL_PID=\$!
+    trap 'kill \$TAIL_PID 2>/dev/null' EXIT
 
     while squeue -j $JOB_ID -h 2>/dev/null | grep -q .; do
         sleep 100
