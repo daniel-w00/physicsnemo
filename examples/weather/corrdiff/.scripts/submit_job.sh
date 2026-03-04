@@ -90,11 +90,59 @@ echo "   ... Erwarteter Log-Pfad: $LOG_PATH"
 
 # --- SCHRITT 6: Verbinden und warten ---
 echo ""
-echo "--- 📺 Verbinde zum Live-Log... (Wartet automatisch, bis der Job startet) ---"
-echo "--- 💡 HINWEIS: Drücke 'Strg+C', um die Ansicht zu beenden. Der Job läuft sicher weiter! ---"
+echo "--- 📺 Verbinde zum Live-Log... ---"
+echo "--- 💡 HINWEIS: Drücke 'Strg+C', um die Ansicht zu beenden. Der Job läuft weiter! ---"
 echo "---------------------------------------------------"
 
-ssh -o ServerAliveInterval=60 -t "$SSH_TARGET" "tail -n 50 -F \"$LOG_PATH\""
+# Phase 1: Warte bis RUNNING; Phase 2: Warte auf Log-Datei; Phase 3: Stream bis Job fertig
+ssh -o ServerAliveInterval=60 -t "$SSH_TARGET" "
+
+    # --- Phase 1: Warte bis Job RUNNING ist ---
+    echo '⏳ Warte auf Job-Start...'
+    CHECKS=0
+    while true; do
+        STATE=\$(squeue -j $JOB_ID -h -o '%T|%r|%S' 2>/dev/null)
+        if [ -z \"\$STATE\" ]; then
+            echo '⚠️  Job nicht mehr in Queue (möglicherweise sofort beendet).'
+            break
+        fi
+        JOB_STATUS=\$(echo \"\$STATE\" | cut -d'|' -f1)
+        JOB_REASON=\$(echo \"\$STATE\" | cut -d'|' -f2)
+        JOB_START=\$(echo \"\$STATE\" | cut -d'|' -f3)
+        if [ \"\$JOB_STATUS\" == 'RUNNING' ]; then
+            echo '✅ Job läuft!'
+            break
+        fi
+        echo \"   ... \$JOB_STATUS | Grund: \$JOB_REASON | Geplanter Start: \$JOB_START\"
+        CHECKS=\$((CHECKS + 1))
+        if [ \$CHECKS -lt 10 ]; then
+            sleep 3   # erste ~30s: alle 3s prüfen
+        else
+            sleep 40  # danach: alle 40s prüfen
+        fi
+    done
+
+    # --- Phase 2: Warte auf Log-Datei ---
+    echo '⏳ Warte auf Log-Datei...'
+    while [ ! -f \"$LOG_PATH\" ]; do
+        sleep 2
+    done
+
+    echo '✅ Log-Datei gefunden! Starte Stream...'
+    echo '---------------------------------------------------'
+
+    # --- Phase 3: Stream bis Job fertig ---
+    tail -n 50 -f \"$LOG_PATH\" &
+    TAIL_PID=\$!
+
+    while squeue -j $JOB_ID -h 2>/dev/null | grep -q .; do
+        sleep 100
+    done
+
+    sleep 3  # kurz warten damit letzte Log-Zeilen noch ankommen
+    kill \$TAIL_PID 2>/dev/null
+    wait \$TAIL_PID 2>/dev/null
+"
 
 echo "---------------------------------------------------"
 echo "--- 👋 Stream beendet. ---"
