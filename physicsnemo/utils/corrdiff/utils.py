@@ -239,10 +239,11 @@ class NetCDFWriter:
     """NetCDF Writer"""
 
     def __init__(
-        self, f, lat, lon, input_channels, output_channels, has_lead_time=False
+        self, f, lat, lon, input_channels, output_channels, has_lead_time=False, save_input=True
     ):
         self._f = f
         self.has_lead_time = has_lead_time
+        self.save_input = save_input
         # create unlimited dimensions
         f.createDimension("time")
         f.createDimension("ensemble")
@@ -276,7 +277,6 @@ class NetCDFWriter:
 
         self.truth_group = f.createGroup("truth")
         self.prediction_group = f.createGroup("prediction")
-        self.input_group = f.createGroup("input")
 
         for variable in output_channels:
             name = variable.name + variable.level
@@ -286,10 +286,11 @@ class NetCDFWriter:
             )
 
         # setup input data in netCDF
-
-        for variable in input_channels:
-            name = variable.name + variable.level
-            self.input_group.createVariable(name, "f", dimensions=("time", "y", "x"))
+        if save_input:
+            self.input_group = f.createGroup("input")
+            for variable in input_channels:
+                name = variable.name + variable.level
+                self.input_group.createVariable(name, "f", dimensions=("time", "y", "x"))
 
     def write_input(self, channel_name, time_index, val):
         """Write input data to NetCDF file."""

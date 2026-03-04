@@ -353,6 +353,7 @@ def main(cfg: DictConfig) -> None:
                     input_channels=dataset.input_channels(),
                     output_channels=dataset.output_channels(),
                     has_lead_time=has_lead_time,
+                    save_input=cfg.generation.save_input,
                 )
 
                 if cfg.generation.perf.io_synchronous:
