@@ -346,14 +346,20 @@ def main(cfg: DictConfig) -> None:
             )
             time_index = -1
             if dist.rank == 0:
+                # Pass empty input_channels when save_input=False to avoid
+                # NetCDFWriter pre-allocating ~1GB of empty input variables.
+                # (NetCDFWriter always creates variables for all listed channels,
+                # even if write_input() is never called.)
+                # Note: NetCDFWriter in the local physicsnemo repo also has a
+                # native save_input parameter fix, but the cluster only has the
+                # examples folder, so this workaround is used here instead.
                 writer = NetCDFWriter(
                     f,
                     lat=dataset.latitude(),
                     lon=dataset.longitude(),
-                    input_channels=dataset.input_channels(),
+                    input_channels=dataset.input_channels() if cfg.generation.save_input else [],
                     output_channels=dataset.output_channels(),
                     has_lead_time=has_lead_time,
-                    save_input=cfg.generation.save_input,
                 )
 
                 if cfg.generation.perf.io_synchronous:
