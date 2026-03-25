@@ -1,20 +1,24 @@
 """Generate evaluation plots for CorrDiff generation outputs.
 
-Requires metrics to have been computed first:
-    python analysis/generation/metrics.py
+Requires metrics to be computed first (metrics.py). Then run:
 
-Then run from repo root:
-    python analysis/generation/plots.py
+    # Single model
+    python analysis/generation/plots.py --model "reg:output/gen_taiwan/reg.nc:800k"
 
-Outputs saved to: analysis/generation/plots/
+    # Two-model comparison
+    python analysis/generation/plots.py \\
+        --model "diffusion:output/gen_taiwan/diff.nc:1400k" \\
+        --model "regression:output/gen_taiwan/reg.nc:800k"
+
+Output saved to: analysis/generation/results/{name}/plots/
 """
 
+import argparse
 import os
 import sys
 import warnings
 
 import matplotlib.pyplot as plt
-import matplotlib.dates as mdates
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -22,71 +26,80 @@ import xarray as xr
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from analysis.generation.utils import (
-    DIFFUSION_FILE,
+    ALL_VARS,
     OUTPUT_VARS,
-    REGRESSION_FILE,
+    VAR_CMAP,
     VAR_LABELS,
     add_wind_speed,
+    assign_styles,
+    comparison_title,
+    make_output_dir,
     open_samples,
+    parse_model_args,
     pattern_correlation,
 )
 
-SCORES_DIR = os.path.join(os.path.dirname(__file__), "scores")
-PLOTS_DIR = os.path.join(os.path.dirname(__file__), "plots")
-
-ALL_VARS = OUTPUT_VARS + ["wind_speed_10m"]
-
-# Color / style for the two models
-MODEL_STYLE = {
-    "diffusion": {"color": "#e07b39", "label": "Diffusion (4-ens)"},
-    "regression": {"color": "#3b7dd8", "label": "Regression (det.)"},
-}
-
-# Colormaps per variable for spatial maps
-VAR_CMAP = {
-    "maximum_radar_reflectivity": "magma",
-    "temperature_2m": "RdYlBu_r",
-    "eastward_wind_10m": "RdBu_r",
-    "northward_wind_10m": "RdBu_r",
-    "wind_speed_10m": "viridis",
-}
-
-
-def load_metrics():
-    diff = xr.open_dataset(os.path.join(SCORES_DIR, "diffusion_metrics.nc"))
-    reg = xr.open_dataset(os.path.join(SCORES_DIR, "regression_metrics.nc"))
-    return diff, reg
-
-
-def savefig(name: str):
-    path = os.path.join(PLOTS_DIR, name)
-    plt.savefig(path, dpi=150, bbox_inches="tight")
-    plt.close()
-    print(f"  Saved: {path}")
-
-
-# ─── Plot 1: RMSE time series ────────────────────────────────────────────────
+# ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _time_tick_labels(times: pd.DatetimeIndex, n_ticks: int = 10):
-    """Return evenly-spaced tick positions and labels for sample-index x-axis."""
+    """Evenly spaced tick positions and labels for sample-index x-axis."""
     n = len(times)
     idxs = np.linspace(0, n - 1, min(n_ticks, n), dtype=int)
     labels = [times[i].strftime("%m-%d\n%H:%M") for i in idxs]
     return idxs, labels
 
 
-def plot_rmse_timeseries(diff, reg):
-    vars_to_plot = [v for v in ALL_VARS if v != "wind_speed_10m"] + ["wind_speed_10m"]
-    n = len(vars_to_plot)
+def _savefig(name: str, plots_dir: str):
+    path = os.path.join(plots_dir, name)
+    plt.savefig(path, dpi=150, bbox_inches="tight")
+    plt.close()
+    print(f"  Saved: {path}")
+
+
+def _load_metrics(spec, scores_dir: str, n_models: int) -> xr.Dataset:
+    """Load cached metrics .nc for a given ModelSpec."""
+    if n_models == 1:
+        nc_path = os.path.join(scores_dir, "metrics.nc")
+    else:
+        nc_path = os.path.join(scores_dir, f"{spec.name}_metrics.nc")
+    if not os.path.exists(nc_path):
+        print(f"  ERROR: metrics file not found: {nc_path}")
+        print("  Run metrics.py first with the same --model arguments.")
+        sys.exit(1)
+    return xr.open_dataset(nc_path)
+
+
+def _ensure_2d_axs(axs, n_rows, n_cols):
+    """Ensure axs is always shape (n_rows, n_cols) regardless of matplotlib's squeeze."""
+    axs = np.array(axs)
+    if axs.ndim == 0:
+        axs = axs.reshape(1, 1)
+    elif axs.ndim == 1:
+        if n_rows == 1:
+            axs = axs.reshape(1, -1)
+        else:
+            axs = axs.reshape(-1, 1)
+    return axs
+
+
+# ─── Plot 1 & 2: Metric time series ──────────────────────────────────────────
+
+def plot_metric_timeseries(metric_name: str, specs, metrics_dict: dict, styles: dict, plots_dir: str):
+    """Plot per-variable time series of a given metric for all models, sorted by time."""
+    n = len(ALL_VARS)
     fig, axs = plt.subplots(n, 1, figsize=(12, 3 * n), sharex=True)
-    # Use sample index as x so unsorted timestamps don't distort the line
-    times = pd.to_datetime(diff["time"].values)
+    axs = np.atleast_1d(axs)
+
+    # Sort by time using first model as reference
+    first_ds = next(iter(metrics_dict.values())).sortby("time")
+    times = pd.to_datetime(first_ds["time"].values)
     x = np.arange(len(times))
 
-    for ax, v in zip(axs, vars_to_plot):
-        for model, ds in [("diffusion", diff), ("regression", reg)]:
-            vals = ds[v].sel(metric="rmse").values
-            st = MODEL_STYLE[model]
+    for ax, v in zip(axs, ALL_VARS):
+        for spec in specs:
+            ds = metrics_dict[spec.name].sortby("time")
+            vals = ds[v].sel(metric=metric_name).values
+            st = styles[spec.name]
             ax.plot(x, vals, color=st["color"], label=st["label"], linewidth=1.2)
         ax.set_ylabel(VAR_LABELS.get(v, v), fontsize=9)
         ax.grid(alpha=0.3)
@@ -95,89 +108,32 @@ def plot_rmse_timeseries(diff, reg):
     tick_pos, tick_labels = _time_tick_labels(times)
     axs[-1].set_xticks(tick_pos)
     axs[-1].set_xticklabels(tick_labels, fontsize=7)
-    axs[-1].set_xlabel("Sample (timestamp in file order)")
-    fig.suptitle("RMSE per sample (spatially averaged)", fontsize=12)
+    axs[-1].set_xlabel("Time (sorted)")
+
+    title = f"{metric_name.upper()} per sample (spatially averaged) — {comparison_title(specs)}"
+    fig.suptitle(title, fontsize=11)
     plt.tight_layout()
-    savefig("rmse_timeseries.png")
+    _savefig(f"{metric_name}_timeseries.png", plots_dir)
 
 
-# ─── Plot 2: CRPS time series ────────────────────────────────────────────────
+# ─── Plot 3 & 4: Spatial maps ─────────────────────────────────────────────────
 
-def plot_crps_timeseries(diff, reg):
-    vars_to_plot = ALL_VARS
-    n = len(vars_to_plot)
-    fig, axs = plt.subplots(n, 1, figsize=(12, 3 * n), sharex=True)
-    times = pd.to_datetime(diff["time"].values)
-    x = np.arange(len(times))
+def plot_spatial_map(map_type: str, specs, styles: dict, plots_dir: str):
+    """Plot time-averaged spatial bias or MAE map for all models.
 
-    for ax, v in zip(axs, vars_to_plot):
-        for model, ds in [("diffusion", diff), ("regression", reg)]:
-            vals = ds[v].sel(metric="crps").values
-            st = MODEL_STYLE[model]
-            ax.plot(x, vals, color=st["color"], label=st["label"], linewidth=1.2)
-        ax.set_ylabel(VAR_LABELS.get(v, v), fontsize=9)
-        ax.grid(alpha=0.3)
-        ax.legend(fontsize=8)
-
-    tick_pos, tick_labels = _time_tick_labels(times)
-    axs[-1].set_xticks(tick_pos)
-    axs[-1].set_xticklabels(tick_labels, fontsize=7)
-    axs[-1].set_xlabel("Sample (timestamp in file order)")
-    fig.suptitle("CRPS per sample (spatially averaged)", fontsize=12)
-    plt.tight_layout()
-    savefig("crps_timeseries.png")
-
-
-# ─── Plot 3: Bias maps ───────────────────────────────────────────────────────
-
-def plot_bias_maps():
-    datasets = {
-        "diffusion": open_samples(DIFFUSION_FILE),
-        "regression": open_samples(REGRESSION_FILE),
-    }
-    vars_to_plot = OUTPUT_VARS  # wind_speed added below
-    n_vars = len(vars_to_plot) + 1  # +1 for wind speed
-    n_models = 2
-    fig, axs = plt.subplots(n_vars, n_models, figsize=(10, 4 * n_vars))
-
-    for col, (model, (truth_ds, pred_ds, root)) in enumerate(datasets.items()):
-        truth_ds = add_wind_speed(truth_ds)
-        pred_ds = add_wind_speed(pred_ds)
-        loop_vars = OUTPUT_VARS + ["wind_speed_10m"]
-
-        for row, v in enumerate(loop_vars):
-            pred_mean = pred_ds[v].mean("ensemble")  # (time, y, x)
-            bias_map = (pred_mean - truth_ds[v]).mean("time").values  # (y, x)
-            lat = root["lat"].values
-            lon = root["lon"].values
-
-            ax = axs[row, col]
-            bound = max(abs(bias_map.min()), abs(bias_map.max()))
-            im = ax.pcolormesh(lon, lat, bias_map, cmap="RdBu_r",
-                               vmin=-bound, vmax=bound, shading="auto")
-            plt.colorbar(im, ax=ax, fraction=0.046)
-            ax.set_title(f"{MODEL_STYLE[model]['label']}\n{VAR_LABELS.get(v, v)}", fontsize=8)
-            ax.set_xlabel("lon")
-            ax.set_ylabel("lat")
-
-    fig.suptitle("Mean Bias (prediction − truth), averaged over time", fontsize=12)
-    plt.tight_layout()
-    savefig("bias_maps.png")
-
-
-# ─── Plot 4: Error maps (mean absolute error spatially) ─────────────────────
-
-def plot_error_maps():
-    datasets = {
-        "diffusion": open_samples(DIFFUSION_FILE),
-        "regression": open_samples(REGRESSION_FILE),
-    }
-    loop_vars = OUTPUT_VARS + ["wind_speed_10m"]
+    map_type: 'bias' or 'error'
+    """
+    loop_vars = ALL_VARS
     n_vars = len(loop_vars)
-    n_models = 2
-    fig, axs = plt.subplots(n_vars, n_models, figsize=(10, 4 * n_vars))
+    n_cols = len(specs)
 
-    for col, (model, (truth_ds, pred_ds, root)) in enumerate(datasets.items()):
+    fig, axs = plt.subplots(n_vars, n_cols, figsize=(6 * n_cols, 4 * n_vars))
+    axs = _ensure_2d_axs(axs, n_vars, n_cols)
+
+    for col, spec in enumerate(specs):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            truth_ds, pred_ds, root = open_samples(spec.path)
         truth_ds = add_wind_speed(truth_ds)
         pred_ds = add_wind_speed(pred_ds)
         lat = root["lat"].values
@@ -185,174 +141,285 @@ def plot_error_maps():
 
         for row, v in enumerate(loop_vars):
             pred_mean = pred_ds[v].mean("ensemble")
-            mae_map = np.abs(pred_mean.values - truth_ds[v].values).mean(axis=0)
-
             ax = axs[row, col]
-            im = ax.pcolormesh(lon, lat, mae_map, cmap="YlOrRd", shading="auto")
+
+            if map_type == "bias":
+                data_map = (pred_mean - truth_ds[v]).mean("time").values
+                bound = max(abs(data_map.min()), abs(data_map.max()))
+                im = ax.pcolormesh(lon, lat, data_map, cmap="RdBu_r",
+                                   vmin=-bound, vmax=bound, shading="auto")
+                title_prefix = "Bias"
+            else:
+                data_map = np.abs(pred_mean.values - truth_ds[v].values).mean(axis=0)
+                im = ax.pcolormesh(lon, lat, data_map, cmap="YlOrRd", shading="auto")
+                title_prefix = "MAE"
+
             plt.colorbar(im, ax=ax, fraction=0.046)
-            ax.set_title(f"{MODEL_STYLE[model]['label']}\n{VAR_LABELS.get(v, v)}", fontsize=8)
+            ax.set_title(f"{styles[spec.name]['label']}\n{VAR_LABELS.get(v, v)}", fontsize=8)
             ax.set_xlabel("lon")
             ax.set_ylabel("lat")
 
-    fig.suptitle("Mean Absolute Error (time-averaged spatial map)", fontsize=12)
+    map_label = "Mean Bias (prediction − truth)" if map_type == "bias" else "Mean Absolute Error"
+    fig.suptitle(f"{map_label}, time-averaged — {comparison_title(specs)}", fontsize=11)
     plt.tight_layout()
-    savefig("error_maps.png")
+    _savefig(f"{map_type}_maps.png", plots_dir)
 
 
-# ─── Plot 5: Spread vs Skill (diffusion only) ────────────────────────────────
+# ─── Plot 5: Spread vs Skill ──────────────────────────────────────────────────
 
-def plot_spread_skill(diff):
+def plot_spread_skill(specs, metrics_dict: dict, styles: dict, plots_dir: str):
+    """Plot spread vs RMSE scatter for models with ensemble > 1.
+
+    Skipped entirely if no model has ensemble > 1.
+    """
+    # Filter to ensemble models
+    ens_specs = []
+    for spec in specs:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            _, pred_ds, _ = open_samples(spec.path)
+        if pred_ds.sizes.get("ensemble", 1) > 1:
+            ens_specs.append(spec)
+
+    if not ens_specs:
+        print("  Skipping spread/skill: no ensemble models.")
+        return
+
     n_vars = len(ALL_VARS)
     ncols = 3
     nrows = int(np.ceil(n_vars / ncols))
     fig, axs = plt.subplots(nrows, ncols, figsize=(5 * ncols, 4 * nrows))
-    axs_flat = axs.flat
+    axs_flat = np.array(axs).flat
 
     for v, ax in zip(ALL_VARS, axs_flat):
-        rmse = diff[v].sel(metric="rmse").values
-        spread = diff[v].sel(metric="spread").values
-        ax.scatter(spread, rmse, alpha=0.6, s=20, color=MODEL_STYLE["diffusion"]["color"])
-        lim = max(rmse.max(), spread.max()) * 1.05
-        ax.plot([0, lim], [0, lim], "k--", linewidth=1, label="ideal (ratio=1)")
-        ax.set_xlabel("Ensemble Spread")
-        ax.set_ylabel("RMSE")
+        for spec in ens_specs:
+            ds = metrics_dict[spec.name]
+            rmse = ds[v].sel(metric="rmse").values
+            spread = ds[v].sel(metric="spread").values
+            st = styles[spec.name]
+            ax.scatter(rmse, spread, alpha=0.6, s=20, color=st["color"], label=st["label"])
+        lim_max = max(
+            max(metrics_dict[s.name][v].sel(metric="rmse").values.max() for s in ens_specs),
+            max(metrics_dict[s.name][v].sel(metric="spread").values.max() for s in ens_specs),
+        ) * 1.05
+        ax.plot([0, lim_max], [0, lim_max], "k--", linewidth=1, label="ideal")
+        ax.set_xlabel("RMSE")
+        ax.set_ylabel("Ensemble Std. Dev. (adjusted)")
         ax.set_title(VAR_LABELS.get(v, v), fontsize=9)
         ax.legend(fontsize=7)
         ax.grid(alpha=0.3)
 
-    # hide unused axes
     for ax in list(axs_flat)[n_vars:]:
         ax.set_visible(False)
 
-    fig.suptitle("Spread vs. Skill — Diffusion model (one point per timestep)", fontsize=12)
+    fig.suptitle(f"Spread vs. Skill — {comparison_title(ens_specs)}", fontsize=11)
     plt.tight_layout()
-    savefig("spread_skill.png")
+    _savefig("spread_skill.png", plots_dir)
 
 
-# ─── Plot 6: Sample panels ───────────────────────────────────────────────────
+# ─── Plot 6: Sample panels ────────────────────────────────────────────────────
 
-def plot_sample_panels(n_samples: int = 3):
-    truth_diff, pred_diff, root_diff = open_samples(DIFFUSION_FILE)
-    truth_reg, pred_reg, _ = open_samples(REGRESSION_FILE)
+def plot_sample_panels(specs, styles: dict, plots_dir: str, n_samples: int = 3,
+                       events: dict = None):
+    """Plot side-by-side spatial snapshots: truth + each model.
 
-    lat = root_diff["lat"].values
-    lon = root_diff["lon"].values
-    times = pd.to_datetime(root_diff["time"].values)
-    n_time = len(times)
-
-    # pick evenly spaced timestep indices
-    idxs = np.linspace(0, n_time - 1, n_samples, dtype=int)
+    Args:
+        events: dict mapping date string (e.g. '2021-09-12') to event label
+                (e.g. 'Typhoon Chanthu'). These timestamps are always included.
+    """
+    if events is None:
+        events = {}
 
     vars_to_plot = OUTPUT_VARS
     n_vars = len(vars_to_plot)
+    n_cols = 1 + len(specs)
 
-    for t_idx in idxs:
-        fig, axs = plt.subplots(n_vars, 3, figsize=(13, 4 * n_vars))
+    # Load all model data
+    model_data = {}
+    truth_data = None
+    root_ref = None
+    for spec in specs:
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            truth_ds, pred_ds, root = open_samples(spec.path)
+        if truth_data is None:
+            truth_data = truth_ds
+            root_ref = root
+        model_data[spec.name] = pred_ds
+
+    lat = root_ref["lat"].values
+    lon = root_ref["lon"].values
+    # Sort everything by time so indices are chronological
+    sort_order = np.argsort(root_ref["time"].values)
+    times = pd.to_datetime(root_ref["time"].values[sort_order])
+    n_time = len(times)
+
+    # Build index list into the sorted array.
+    # Forced event timestamps come first, fill the rest evenly.
+    forced_sorted_idxs = []
+    event_labels = {}  # sorted index -> event label
+    for date_str, label in events.items():
+        date = pd.Timestamp(date_str)
+        matches = np.where(times.normalize() == date)[0]
+        if len(matches) == 0:
+            print(f"  WARNING: event date {date_str} not found in data, skipping.")
+            continue
+        idx = int(matches[0])
+        forced_sorted_idxs.append(idx)
+        event_labels[idx] = label
+
+    remaining = n_samples - len(forced_sorted_idxs)
+    if remaining > 0:
+        fill_sorted_idxs = np.linspace(0, n_time - 1, remaining, dtype=int)
+        fill_sorted_idxs = [i for i in fill_sorted_idxs if i not in forced_sorted_idxs][:remaining]
+    else:
+        fill_sorted_idxs = []
+
+    # Final list of sorted indices, ordered chronologically
+    all_sorted_idxs = sorted(set(forced_sorted_idxs + fill_sorted_idxs))
+
+    for sorted_idx in all_sorted_idxs:
+        # Map sorted index back to original file index for isel
+        file_idx = int(sort_order[sorted_idx])
+
+        fig, axs = plt.subplots(n_vars, n_cols, figsize=(5 * n_cols, 4 * n_vars))
+        axs = _ensure_2d_axs(axs, n_vars, n_cols)
+
+        # Column headers
         axs[0, 0].set_title("Truth", fontsize=10)
-        axs[0, 1].set_title("Regression (pred)", fontsize=10)
-        axs[0, 2].set_title("Diffusion (ens-mean)", fontsize=10)
+        for col, spec in enumerate(specs, start=1):
+            axs[0, col].set_title(styles[spec.name]["label"], fontsize=10)
 
         for row, v in enumerate(vars_to_plot):
-            tr = truth_diff[v].isel(time=t_idx).values
-            rg = pred_reg[v].isel(time=t_idx).mean("ensemble").values
-            df = pred_diff[v].isel(time=t_idx).mean("ensemble").values
-
-            vmin = min(tr.min(), rg.min(), df.min())
-            vmax = max(tr.max(), rg.max(), df.max())
+            tr = truth_data[v].isel(time=file_idx).values
+            model_arrays = {
+                spec.name: model_data[spec.name][v].isel(time=file_idx).mean("ensemble").values
+                for spec in specs
+            }
+            all_arrays = [tr] + list(model_arrays.values())
+            vmin = min(a.min() for a in all_arrays)
+            vmax = max(a.max() for a in all_arrays)
             cmap = VAR_CMAP.get(v, "viridis")
 
-            for col, (data, label) in enumerate([(tr, "truth"), (rg, "reg"), (df, "diff")]):
-                ax = axs[row, col]
-                im = ax.pcolormesh(lon, lat, data, cmap=cmap,
-                                   vmin=vmin, vmax=vmax, shading="auto")
-                if col == 2:
-                    plt.colorbar(im, ax=ax, fraction=0.046)
-
-            # annotate RMSE
-            rmse_reg = float(np.sqrt(np.mean((rg - tr) ** 2)))
-            rmse_diff = float(np.sqrt(np.mean((df - tr) ** 2)))
-            pc_reg = pattern_correlation(rg, tr)
-            pc_diff = pattern_correlation(df, tr)
-
+            im = axs[row, 0].pcolormesh(lon, lat, tr, cmap=cmap,
+                                         vmin=vmin, vmax=vmax, shading="auto")
             axs[row, 0].set_ylabel(VAR_LABELS.get(v, v), fontsize=8)
-            axs[row, 1].set_title(f"Regression  RMSE={rmse_reg:.3f}  PC={pc_reg:.2f}", fontsize=7)
-            axs[row, 2].set_title(f"Diffusion ens-mean  RMSE={rmse_diff:.3f}  PC={pc_diff:.2f}", fontsize=7)
 
-        time_str = times[t_idx].strftime("%Y-%m-%d %H:%M UTC")
-        fig.suptitle(f"Sample panel — {time_str}", fontsize=11)
+            for col, spec in enumerate(specs, start=1):
+                arr = model_arrays[spec.name]
+                im = axs[row, col].pcolormesh(lon, lat, arr, cmap=cmap,
+                                               vmin=vmin, vmax=vmax, shading="auto")
+                rmse = float(np.sqrt(np.mean((arr - tr) ** 2)))
+                pc = pattern_correlation(arr, tr)
+                axs[row, col].set_title(f"RMSE={rmse:.3f}  PC={pc:.2f}", fontsize=7)
+
+                if col == len(specs):
+                    plt.colorbar(im, ax=axs[row, col], fraction=0.046)
+
+        time_str = times[sorted_idx].strftime("%Y-%m-%d %H:%M UTC")
+        event_suffix = f" — {event_labels[sorted_idx]}" if sorted_idx in event_labels else ""
+        fig.suptitle(f"Sample panel — {time_str}{event_suffix} — {comparison_title(specs)}", fontsize=10)
         plt.tight_layout()
-        fname = f"sample_panel_t{t_idx:03d}.png"
-        savefig(fname)
+        _savefig(f"sample_panel_{times[sorted_idx].strftime('%Y-%m-%d_%H%M')}.png", plots_dir)
 
 
-# ─── Plot 8: Summary bar chart ───────────────────────────────────────────────
+# ─── Plot 7: Summary bar chart ────────────────────────────────────────────────
 
-def plot_summary_bar():
-    summary = pd.read_csv(os.path.join(SCORES_DIR, "summary.csv"))
+def plot_summary_bars(specs, metrics_dict: dict, styles: dict, plots_dir: str):
+    """Grouped bar chart of time-mean metrics per variable, one chart per metric."""
+    n_models = len(specs)
+    width = 0.8 / n_models
+    x = np.arange(len(ALL_VARS))
+    var_labels = [VAR_LABELS.get(v, v) for v in ALL_VARS]
 
-    for metric in ["rmse", "crps", "mae"]:
-        subset = summary[summary["metric"] == metric]
-        pivot = subset.pivot_table(index="variable", columns="model", values="value")
-
+    for metric in ["rmse", "mae", "crps"]:
         fig, ax = plt.subplots(figsize=(10, 5))
-        x = np.arange(len(pivot))
-        width = 0.35
-
-        bars_diff = pivot.get("diffusion", pd.Series(dtype=float))
-        bars_reg = pivot.get("regression", pd.Series(dtype=float))
-
-        ax.bar(x - width / 2, bars_diff.values, width,
-               label="Diffusion", color=MODEL_STYLE["diffusion"]["color"])
-        ax.bar(x + width / 2, bars_reg.values, width,
-               label="Regression", color=MODEL_STYLE["regression"]["color"])
+        for i, spec in enumerate(specs):
+            ds = metrics_dict[spec.name]
+            vals = [float(ds[v].sel(metric=metric).mean("time").values) for v in ALL_VARS]
+            offset = (i - (n_models - 1) / 2) * width
+            st = styles[spec.name]
+            ax.bar(x + offset, vals, width, label=st["label"], color=st["color"])
 
         ax.set_xticks(x)
-        ax.set_xticklabels(
-            [VAR_LABELS.get(v, v) for v in pivot.index], rotation=20, ha="right", fontsize=9
-        )
+        ax.set_xticklabels(var_labels, rotation=20, ha="right", fontsize=9)
         ax.set_ylabel(metric.upper())
-        ax.set_title(f"Time-mean {metric.upper()} — Diffusion vs Regression")
+        ax.set_title(f"Time-mean {metric.upper()} — {comparison_title(specs)}")
         ax.legend()
         ax.grid(axis="y", alpha=0.3)
         plt.tight_layout()
-        savefig(f"summary_bar_{metric}.png")
+        _savefig(f"summary_bar_{metric}.png", plots_dir)
 
 
-# ─── Main ────────────────────────────────────────────────────────────────────
+# ─── Main ─────────────────────────────────────────────────────────────────────
 
 def main():
-    os.makedirs(PLOTS_DIR, exist_ok=True)
+    parser = argparse.ArgumentParser(
+        description="Generate evaluation plots for CorrDiff generation outputs."
+    )
+    parser.add_argument(
+        "--model", action="append", required=True,
+        metavar="NAME:PATH[:CKPT]",
+        help="Model spec: name:path[:checkpoint_step]. Repeat for two-model comparison.",
+    )
+    parser.add_argument(
+        "--outdir", default=None,
+        help="Override base output directory (default: analysis/generation/results/)",
+    )
+    parser.add_argument(
+        "--n-samples", type=int, default=3,
+        help="Number of sample panel timesteps (default: 3)",
+    )
+    parser.add_argument(
+        "--event", action="append", default=[],
+        metavar="DATE:LABEL",
+        help="Force a timestep into sample panels with an event label, e.g. '2021-09-12:Typhoon Chanthu'. Repeatable.",
+    )
+    args = parser.parse_args()
 
-    # Load pre-computed metrics
-    if not os.path.exists(os.path.join(SCORES_DIR, "diffusion_metrics.nc")):
-        print("Metrics not found. Run metrics.py first.")
-        sys.exit(1)
+    specs = parse_model_args(args.model)
+    out_dir = make_output_dir(specs, base=args.outdir) if args.outdir else make_output_dir(specs)
+    scores_dir = os.path.join(out_dir, "scores")
+    plots_dir = os.path.join(out_dir, "plots")
+    os.makedirs(plots_dir, exist_ok=True)
 
+    styles = assign_styles(specs)
+
+    # Load cached metrics
     print("Loading metrics...")
-    diff, reg = load_metrics()
+    metrics_dict = {spec.name: _load_metrics(spec, scores_dir, len(specs)) for spec in specs}
 
     print("Plot 1: RMSE time series")
-    plot_rmse_timeseries(diff, reg)
+    plot_metric_timeseries("rmse", specs, metrics_dict, styles, plots_dir)
 
     print("Plot 2: CRPS time series")
-    plot_crps_timeseries(diff, reg)
+    plot_metric_timeseries("crps", specs, metrics_dict, styles, plots_dir)
 
     print("Plot 3: Bias maps")
-    plot_bias_maps()
+    plot_spatial_map("bias", specs, styles, plots_dir)
 
     print("Plot 4: Error maps")
-    plot_error_maps()
+    plot_spatial_map("error", specs, styles, plots_dir)
 
     print("Plot 5: Spread vs Skill")
-    plot_spread_skill(diff)
+    plot_spread_skill(specs, metrics_dict, styles, plots_dir)
+
+    # Parse --event DATE:LABEL args
+    events = {}
+    for e in args.event:
+        parts = e.split(":", maxsplit=1)
+        if len(parts) != 2:
+            print(f"  WARNING: --event must be DATE:LABEL, got {e!r}, skipping.")
+            continue
+        events[parts[0].strip()] = parts[1].strip()
 
     print("Plot 6: Sample panels")
-    plot_sample_panels(n_samples=3)
+    plot_sample_panels(specs, styles, plots_dir, n_samples=args.n_samples, events=events)
 
     print("Plot 7: Summary bar charts")
-    plot_summary_bar()
+    plot_summary_bars(specs, metrics_dict, styles, plots_dir)
 
-    print(f"\nAll plots saved to: {PLOTS_DIR}")
+    print(f"\nAll plots saved to: {plots_dir}")
 
 
 if __name__ == "__main__":

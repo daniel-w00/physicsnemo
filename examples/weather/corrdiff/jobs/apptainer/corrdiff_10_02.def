@@ -32,7 +32,7 @@ From: nvcr.io/nvidia/pytorch:25.01-py3
    pip install --force-reinstall --no-deps opencv-python==4.13.0.90
 
 %labels
-   Author Daniel SimonH
+Author DanielundSimonH
 
 
 

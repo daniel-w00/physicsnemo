@@ -65,17 +65,26 @@ dataset:
 # Training parameters
 training:
     hp:
-        training_duration: 1_000_000 #before 200millionen
+        training_duration: 2_000_000 #before 2millionen
         # Training duration based on the number of processed samples
-        lr_rampup: 5_000 #before 10 millionen
+        lr_rampup: 10_000 #before 10 millionen
         # Rampup for learning rate, in number of samples
         total_batch_size: 256  # normal 256
         batch_size_per_gpu: 4 #defaultt ist auto , 1 hatte 20% von 80gb
     io:
-      print_progress_freq: 5_096
-      save_n_recent_checkpoints: 10
+      print_progress_freq: 4000
+      save_n_recent_checkpoints: 14
       checkpoint_dir: /checkpoints/taiwan/alpha-v1
-      save_checkpoint_freq: 50_000
+      save_checkpoint_freq: 100_000
+
+# wenn validation auftaucht dann wird validiert
+#Wenn kein validation:-Block in der Config steht, wird keine Validierung durchgeführt;
+#mit validation: train: false, all_times: false wird automatisch ein Val-Set aus den 2021er-Daten erstellt und regelmäßig der Validation-Loss berechnet.
+#all_times: true deaktiviert den Zeitfilter (alle Daten werden verwendet), train: true wählt statt 2021 alle anderen Jahre.
+validation:
+    train: false
+    all_times: false
+
 
 # Parameters for wandb logging
 wandb:
