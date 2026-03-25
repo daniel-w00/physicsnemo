@@ -115,7 +115,7 @@ class _ZarrDataset(DownscalingDataset):
     def _get_channel_meta(self, variable, level):
         if np.isnan(level):
             level = ""
-        return ChannelMetadata(name=variable, level=str(level))
+        return ChannelMetadata(name=str(variable), level=str(level))
 
     def input_channels(self):
         """Metadata for the input channels. A list of dictionaries, one for each channel"""

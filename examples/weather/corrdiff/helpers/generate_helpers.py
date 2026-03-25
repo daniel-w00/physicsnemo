@@ -37,7 +37,8 @@ def get_dataset_and_sampler(dataset_cfg, times, has_lead_time=False):
             for time in times
         ]
     all_times = dataset.time()
-    time_indices = [all_times.index(t) for t in plot_times]
+    time_indices = [all_times.index(t) for t in plot_times if t in all_times]
+    #todo warum fehlt was
     sampler = time_indices
 
     return dataset, sampler

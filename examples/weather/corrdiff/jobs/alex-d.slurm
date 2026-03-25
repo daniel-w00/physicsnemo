@@ -1,8 +1,8 @@
 #!/bin/bash -l
 #SBATCH -J CorrDiff
 #SBATCH --ntasks=1
-#SBATCH --time=1:00:00
-#SBATCH --gres=gpu:a100:4
+#SBATCH --time=23:00:00
+#SBATCH --gres=gpu:a100:2
 #SBATCH --partition=a100
 #SBATCH --output=output/alex/jobout/job-%j.out
 #SBATCH --mail-type=ALL
@@ -10,9 +10,9 @@
 #SBATCH --constraint=a100_80
 
 # --- GPU config: set to 1 or 4 ---
-NUM_GPUS=4
+NUM_GPUS=2
 
-set -x  # Zeigt jeden Befehl an, bevor er ausgeführt wird
+#set -x  # Zeigt jeden Befehl an, bevor er ausgeführt wird
 
 # Set up environment
 export http_proxy=http://proxy:80
@@ -28,7 +28,7 @@ echo ${CUDA_VISIBLE_DEVICES}
 source $HOME/.job_secrets
 
 DATASET_SRC=/anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset
-DATASET_TAR=/anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset.tar
+#DATASET_TAR=/anvme/workspace/b214cb18-ws-daniel-cwb/cwa_dataset.tar
 COPY_TO_TMPDIR=false  # set to false to use dataset directly from source
 
 
@@ -51,7 +51,8 @@ apptainer exec $HOME/apptainer/corrdiff_10_02.sif python3 -c "import zarr; print
 
 #try without srun, dann nicht doppelt, srun hier nur notwendig wenn mehrere noes
 apptainer run --nv --bind $DATA_DIR:/data/ \
-                        --bind $WORK/checkpoints:/checkpoints/ \
+                        --bind $HPCVAULT/checkpoints:/checkpoints/ \
+                        --bind $HOME/results:/results \
                         $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=$NUM_GPUS  $HOME/corrdiff/train.py --config-name config_training_taiwan_regression-alex
 
 
