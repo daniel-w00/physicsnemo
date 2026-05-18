@@ -9,6 +9,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Images
+*.png
+
 # WandB logs
 wandb/
 
