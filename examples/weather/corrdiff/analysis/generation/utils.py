@@ -3,6 +3,7 @@
 import dataclasses
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
 
@@ -33,8 +34,17 @@ VAR_CMAP = {
     "wind_speed_10m": "viridis",
 }
 
-# Default color palette: up to 2 models
-PALETTE = ["#e07b39", "#3b7dd8"]
+# Fixed color palette for the first few models; falls back to tab20 for larger sets
+_PALETTE_FIXED = ["#e07b39", "#3b7dd8", "#2ca02c", "#d62728", "#9467bd",
+                  "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
+
+
+def _get_palette(n: int) -> list:
+    """Return n distinct colors."""
+    if n <= len(_PALETTE_FIXED):
+        return _PALETTE_FIXED[:n]
+    cmap = plt.get_cmap("tab20")
+    return [cmap(i / n) for i in range(n)]
 
 # Base results directory (relative to repo root)
 RESULTS_BASE = os.path.join(os.path.dirname(__file__), "results")
@@ -68,7 +78,7 @@ class ModelSpec:
 
 
 def parse_model_args(model_strs: list) -> list:
-    """Parse a list of model spec strings. Accepts 1 or 2 models.
+    """Parse a list of model spec strings.
 
     Args:
         model_strs: list of 'name:path[:ckpt]' strings
@@ -78,8 +88,6 @@ def parse_model_args(model_strs: list) -> list:
     """
     if not model_strs:
         raise ValueError("At least one --model argument is required.")
-    if len(model_strs) > 2:
-        raise ValueError("At most 2 models are supported.")
     return [ModelSpec.from_str(s) for s in model_strs]
 
 
@@ -91,13 +99,10 @@ def _spec_dir_name(spec) -> str:
 def make_output_dir(specs: list, base: str = RESULTS_BASE) -> str:
     """Build the output directory path from model specs.
 
-    Single model:   base/ncfile
-    Two models:     base/ncfile_a_vs_ncfile_b
+    Single model:    base/ncfile
+    Multiple models: base/ncfile_a_vs_ncfile_b_vs_...
     """
-    if len(specs) == 1:
-        dirname = _spec_dir_name(specs[0])
-    else:
-        dirname = f"{_spec_dir_name(specs[0])}_vs_{_spec_dir_name(specs[1])}"
+    dirname = "_vs_".join(_spec_dir_name(s) for s in specs)
     return os.path.join(base, dirname)
 
 
@@ -107,14 +112,15 @@ def assign_styles(specs: list) -> dict:
     Returns:
         dict mapping model name → {'color': str, 'label': str}
     """
+    palette = _get_palette(len(specs))
     return {
-        spec.name: {"color": PALETTE[i], "label": spec.display_name}
+        spec.name: {"color": palette[i], "label": spec.display_name}
         for i, spec in enumerate(specs)
     }
 
 
 def comparison_title(specs: list) -> str:
-    """Build a title suffix: 'model_a' or 'model_a vs model_b'."""
+    """Build a title suffix: 'model_a' or 'model_a vs model_b vs ...'."""
     return " vs ".join(s.display_name for s in specs)
 
 

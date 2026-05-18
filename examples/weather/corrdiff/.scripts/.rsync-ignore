@@ -3,6 +3,7 @@
 
 # Ausgabe-Ordner (Nie löschen!)
 results/
+generated/
 logs/
 localdata/
 output/
@@ -29,3 +30,5 @@ venv/
 *.pth
 *.pt
 *.log
+
+

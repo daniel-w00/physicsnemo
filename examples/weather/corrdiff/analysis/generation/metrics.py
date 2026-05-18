@@ -28,12 +28,22 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspa
 from analysis.generation.utils import (
     ALL_VARS,
     OUTPUT_VARS,
-    add_wind_speed,
     make_output_dir,
     open_samples,
     parse_model_args,
     pattern_correlation,
 )
+
+_CHUNK = 50   # timesteps per chunk — keeps peak RAM < ~300 MB per variable
+
+
+def _load_var(ds: xr.Dataset, var: str, t_slice) -> np.ndarray:
+    """Load a time slice of var; computes wind_speed_10m from u/v on the fly."""
+    if var == "wind_speed_10m":
+        u = ds["eastward_wind_10m"].isel(time=t_slice).values
+        v = ds["northward_wind_10m"].isel(time=t_slice).values
+        return np.sqrt(u ** 2 + v ** 2)
+    return ds[var].isel(time=t_slice).values
 
 
 def crps_ensemble_numpy(truth: np.ndarray, ensemble: np.ndarray) -> np.ndarray:
@@ -47,52 +57,98 @@ def crps_ensemble_numpy(truth: np.ndarray, ensemble: np.ndarray) -> np.ndarray:
         CRPS spatially averaged, shape (...)
     """
     n = ensemble.shape[0]
-    mae = np.mean(np.abs(ensemble.mean(axis=0) - truth), axis=(-2, -1))
-    spread = 0.0
+    # E[|X - y|]: average over members first, then space — NOT |mean - y|
+    mae_term = np.mean(np.abs(ensemble - truth[np.newaxis, ...]), axis=(0, -2, -1))
+    # E[|X - X'|]: average over unique pairs and space
+    spread_sum = 0.0
     for i in range(n):
         for j in range(i + 1, n):
-            spread += np.mean(np.abs(ensemble[i] - ensemble[j]), axis=(-2, -1))
-    spread = spread / (n * (n - 1) / 2)
-    return mae - 0.5 * spread
+            spread_sum += np.mean(np.abs(ensemble[i] - ensemble[j]), axis=(-2, -1))
+    spread_term = spread_sum / (n * (n - 1) / 2)
+    return mae_term - 0.5 * spread_term
+
+
+def load_metrics(spec, scores_dir: str, n_models: int) -> xr.Dataset:
+    """Load cached metrics NetCDF for a given ModelSpec.
+
+    Args:
+        spec:       ModelSpec instance
+        scores_dir: directory containing the metrics .nc files
+        n_models:   total number of models (determines filename)
+
+    Raises:
+        FileNotFoundError: if the metrics file has not been computed yet
+    """
+    if n_models == 1:
+        nc_path = os.path.join(scores_dir, "metrics.nc")
+    else:
+        nc_path = os.path.join(scores_dir, f"{spec.name}_metrics.nc")
+    if not os.path.exists(nc_path):
+        raise FileNotFoundError(
+            f"Metrics file not found: {nc_path}\n"
+            "Run metrics.py first with the same --model arguments."
+        )
+    return xr.open_dataset(nc_path)
 
 
 def compute_metrics_for_file(path: str, label: str) -> xr.Dataset:
     """Compute all metrics for a single output file.
 
     Returns an xr.Dataset with dims (metric, time) for each variable.
+    Processes data in time chunks to avoid loading large arrays into memory.
     """
     truth_ds, pred_ds, root = open_samples(path)
 
-    truth_ds = add_wind_speed(truth_ds)
-    pred_ds = add_wind_speed(pred_ds)
-
     n_time = truth_ds.sizes["time"]
     times = root["time"].values
+    n_ens = pred_ds.sizes["ensemble"]
+
+    lat_arr = root["lat"].values
+    lon_arr = root["lon"].values
+    if lat_arr.ndim == 1 and lon_arr.ndim == 1:
+        lon_2d, lat_2d = np.meshgrid(lon_arr, lat_arr)
+    else:
+        lat_2d, lon_2d = lat_arr, lon_arr
+
+    # Determine spatial shape without loading full array
+    n_y, n_x = truth_ds[OUTPUT_VARS[0]].isel(time=0).shape
 
     metrics_list = []
+    bias_maps = {}
+    mae_maps = {}
 
     for v in ALL_VARS:
-        truth_arr = truth_ds[v].values   # (time, y, x)
-        pred_arr = pred_ds[v].values     # (ensemble, time, y, x)
-        pred_mean = pred_arr.mean(axis=0)
-        n_ens = pred_arr.shape[0]
+        rmse         = np.zeros(n_time)
+        mae          = np.zeros(n_time)
+        bias         = np.zeros(n_time)
+        crps         = np.zeros(n_time)
+        spread       = np.zeros(n_time)
+        spread_skill = np.zeros(n_time)
+        pc           = np.zeros(n_time)
+        bias_map_sum = np.zeros((n_y, n_x))
+        mae_map_sum  = np.zeros((n_y, n_x))
 
-        rmse = np.sqrt(np.mean((pred_mean - truth_arr) ** 2, axis=(-2, -1)))
-        mae = np.mean(np.abs(pred_mean - truth_arr), axis=(-2, -1))
-        bias = np.mean(pred_mean - truth_arr, axis=(-2, -1))
-        # Adjusted spread: multiply by √(1 + 1/n) so that spread == RMSE
-        # at perfect calibration (accounts for ensemble mean being excluded)
-        spread = pred_arr.std(axis=0).mean(axis=(-2, -1)) * np.sqrt(1 + 1 / n_ens)
-        spread_skill = spread / (rmse + 1e-10)
+        for t0 in range(0, n_time, _CHUNK):
+            t1 = min(t0 + _CHUNK, n_time)
+            sl = slice(t0, t1)
 
-        pc = np.array([
-            pattern_correlation(pred_mean[t], truth_arr[t]) for t in range(n_time)
-        ])
+            truth_c = _load_var(truth_ds, v, sl)   # (chunk, y, x)
+            pred_c  = _load_var(pred_ds,  v, sl)   # (ens, chunk, y, x)
+            pmean   = pred_c.mean(axis=0)           # (chunk, y, x)
+            diff    = pmean - truth_c
 
-        if n_ens > 1:
-            crps = crps_ensemble_numpy(truth_arr, pred_arr)
-        else:
-            crps = mae.copy()
+            rmse[t0:t1]         = np.sqrt(np.mean(diff ** 2,     axis=(-2, -1)))
+            mae[t0:t1]          = np.mean(np.abs(diff),           axis=(-2, -1))
+            bias[t0:t1]         = np.mean(diff,                   axis=(-2, -1))
+            spread[t0:t1]       = pred_c.std(axis=0).mean(axis=(-2, -1))
+            spread_skill[t0:t1] = spread[t0:t1] / (rmse[t0:t1] + 1e-10)
+            crps[t0:t1]         = crps_ensemble_numpy(truth_c, pred_c) if n_ens > 1 else mae[t0:t1]
+
+            for i in range(t1 - t0):
+                pc[t0 + i] = pattern_correlation(pmean[i], truth_c[i])
+
+            bias_map_sum += diff.sum(axis=0)
+            mae_map_sum  += np.abs(diff).sum(axis=0)
 
         da = xr.DataArray(
             data=np.stack([rmse, mae, bias, crps, spread, spread_skill, pc], axis=0),
@@ -105,9 +161,20 @@ def compute_metrics_for_file(path: str, label: str) -> xr.Dataset:
         )
         metrics_list.append(da)
 
+        bias_maps[v] = bias_map_sum / n_time
+        mae_maps[v]  = mae_map_sum  / n_time
+
     ds = xr.Dataset({v: m for v, m in zip(ALL_VARS, metrics_list)})
+
+    for v in ALL_VARS:
+        ds[f"{v}_bias_map"] = xr.DataArray(bias_maps[v], dims=["y", "x"])
+        ds[f"{v}_mae_map"]  = xr.DataArray(mae_maps[v],  dims=["y", "x"])
+    ds["lat"] = xr.DataArray(lat_2d, dims=["y", "x"])
+    ds["lon"] = xr.DataArray(lon_2d, dims=["y", "x"])
+
     ds.attrs["source_file"] = path
-    ds.attrs["model"] = label
+    ds.attrs["model"]       = label
+    ds.attrs["n_ensemble"]  = n_ens
     return ds
 
 

@@ -3,7 +3,7 @@
 # Large data and model outputs
 output/
 localdata/
-
+generated/
 # Python
 __pycache__/
 *.pyc
@@ -14,3 +14,4 @@ wandb/
 
 # Slurm output files
 *.out
+
