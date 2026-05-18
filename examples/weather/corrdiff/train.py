@@ -31,6 +31,12 @@ import wandb
 
 from physicsnemo import Module
 from physicsnemo.models.diffusion import UNet, EDMPrecondSuperResolution
+
+# Register local model extensions into physicsnemo so the UNet wrapper can resolve them
+import physicsnemo.models.diffusion as _diffusion_module
+from models.song_unet_emb_branch import SongUNetEmbBranch as _SongUNetEmbBranch
+_diffusion_module.SongUNetEmbBranch = _SongUNetEmbBranch
+UNet._wrapped_classes = UNet._wrapped_classes | {"SongUNetEmbBranch"}
 from physicsnemo.distributed import DistributedManager
 from physicsnemo.metrics.diffusion import RegressionLoss, ResidualLoss, RegressionLossCE
 from physicsnemo.utils.patching import RandomPatching2D

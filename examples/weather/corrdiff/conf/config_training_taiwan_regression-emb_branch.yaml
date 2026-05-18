@@ -1,0 +1,71 @@
+# SPDX-FileCopyrightText: Copyright (c) 2023 - 2025 NVIDIA CORPORATION & AFFILIATES.
+# SPDX-FileCopyrightText: All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+hydra:
+    job:
+          chdir: false
+          name: taiwan_regression
+    run:
+          dir: ./output/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+# Base parameters for dataset, model, training, and validation
+defaults:
+    - dataset: cwb
+    - model: regression
+    - model_size: normal
+    - training: ${model}
+
+
+# Dataset parameters
+dataset:
+    data_path: /data/cwa_dataset.zarr
+    embedding_path: embeddings/alphaearth/taiwan/samesize/2024-conservative.zarr
+
+# Model: dual-branch architecture — parallel CNN for satellite embeddings
+# The alpha_earth channels (last 64 of the input) are split off and processed
+# by a shallow parallel CNN. Features are fused before the first downsampling.
+model:
+    model_args:
+        "N_grid_channels": 4
+        "embedding_type": "zero"
+        "model_type": "SongUNetEmbBranch"
+        "alpha_earth_channels": 64   # must match dataset embedding dimensions
+        "emb_branch_channels": 64    # output channels of the parallel CNN branch (tunable)
+
+# Training parameters
+training:
+    hp:
+        training_duration: 2_000_000
+        lr_rampup: 10_000
+        total_batch_size: 256
+        batch_size_per_gpu: 4
+    io:
+      print_progress_freq: 4000
+      save_n_recent_checkpoints: 14
+      checkpoint_dir: /checkpoints/taiwan/emb-branch-v1
+      save_checkpoint_freq: 100_000
+
+validation:
+    train: false
+    all_times: false
+
+# Parameters for wandb logging
+wandb:
+    mode: online
+    results_dir: "./wandb"
+    watch_model: false

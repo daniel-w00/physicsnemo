@@ -53,7 +53,7 @@ apptainer exec $HOME/apptainer/corrdiff_10_02.sif python3 -c "import zarr; print
 apptainer run --nv --bind $DATA_DIR:/data/ \
                         --bind $HPCVAULT/checkpoints:/checkpoints/ \
                         --bind $HOME/results:/results \
-                        $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=$NUM_GPUS  $HOME/corrdiff/train.py --config-name config_training_taiwan_regression-alex
+                        $HOME/apptainer/corrdiff_10_02.sif torchrun --nproc_per_node=$NUM_GPUS  $HOME/corrdiff/train.py --config-name config_training_taiwan_regression-emb_branch.yaml
 
 
 #srun apptainer run --nv --bind /anvme/workspace/b214cb13-ecodata/downscaling/:/data/ --bind $WORK/checkpoints:/checkpoints/ $WORK/own_corrdiff.sif python -u $HOME/corrdiff/generate.py --config-name
