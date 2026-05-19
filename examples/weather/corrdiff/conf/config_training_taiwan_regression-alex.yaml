@@ -54,6 +54,10 @@ defaults:
     - training: ${model}
     # The base training parameters. Determined by the model type.
 
+    - val_times_2021@_val_times
+    # Loads the curated 256 validation timestamps from conf/val_times_2021.yaml
+    # under the local package `_val_times`. Reference as ${_val_times.times}.
+
 
 # Dataset parameters. Used for `custom` dataset type.
 # Modify or add below parameters that should be passed as argument to the
@@ -84,6 +88,10 @@ training:
 validation:
     train: false
     all_times: false
+    include_times: ${_val_times.times}
+    # Only the curated 256 validation timestamps from val_times_2021.yaml.
+    # When include_times is set, get_zarr_dataset bypasses the is_2021 filter
+    # so the year-2021 split logic is overridden.
 
 
 # Parameters for wandb logging

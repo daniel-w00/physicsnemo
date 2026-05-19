@@ -533,8 +533,13 @@ class ZarrDataset(DownscalingDataset):
         return x
 
 
-def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, embedding_path=None, **kwargs):
-    """Get a Zarr dataset for training or evaluation."""
+def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, embedding_path=None, include_times=None, **kwargs):
+    """Get a Zarr dataset for training or evaluation.
+
+    If `include_times` is set (list of ISO 8601 strings, e.g. "2021-09-12T00:00:00"),
+    the dataset is filtered to only those timestamps and the year-2021 split (is_2021 /
+    is_not_2021) is bypassed.
+    """
     data_path = to_absolute_path(data_path)
     get_target_normalization = {
         "v1": get_target_normalizations_v1,
@@ -544,6 +549,14 @@ def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, embeddin
     zdataset = _ZarrDataset(
         data_path, get_target_normalization=get_target_normalization
     )
+    if include_times is not None:
+        include_set = set(include_times)
+        def _in_set(t):
+            iso = f"{t.year:04d}-{t.month:02d}-{t.day:02d}T{t.hour:02d}:{t.minute:02d}:{t.second:02d}"
+            return iso in include_set
+        zdataset = FilterTime(zdataset, _in_set)
+        all_times = True
+        logger.info("include_times: filtered to %d timestamps", len(zdataset))
     return ZarrDataset(
         dataset=zdataset, normalization=normalization, all_times=all_times,
         embedding_path=embedding_path, **kwargs

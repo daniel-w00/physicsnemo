@@ -5,12 +5,21 @@ Picks 2 * N distinct timestamps (default N=256) from year 2021 that are marked v
 in the zarr store (`cwb_valid` AND all `era5_valid` channels), splits them randomly into
 val and test, and writes them as a Hydra-friendly YAML file with ISO 8601 timestamps.
 
+With --with-events, the curated TYPHOON_TIMES list below is force-included in test_times.
+Those timestamps are removed from the random pool, so the random portion of test shrinks
+accordingly and val stays disjoint. Edit TYPHOON_TIMES in this file to adjust the events.
+
 Usage (inside apptainer on the HPC):
     apptainer exec ~/apptainer/corrdiff_10_02.sif \
-        python3 make_eval_timestamps.py --output eval_times_2021.yaml
+        python3 make_eval_timestamps.py \
+            --output-val val_times_2021.yaml \
+            --output-test test_times_2021.yaml
 
-Local with custom zarr path:
-    python3 make_eval_timestamps.py --data-path /path/to/cwa_dataset.zarr --output eval_times_2021.yaml
+With curated typhoon events forced into the test set:
+    python3 make_eval_timestamps.py \
+        --output-val val_times_2021.yaml \
+        --output-test test_times_2021.yaml \
+        --with-events
 """
 import argparse
 import sys
@@ -25,6 +34,24 @@ import zarr
 DEFAULT_DATA_PATH = (
     "/data/42-julia-hpc-rz-lsx/sih25nq/downscaling/CorrDiff/cwa_dataset/cwa_dataset.zarr"
 )
+
+# Curated 2021 Taiwan typhoon timestamps, force-included in test_times when --with-events.
+# Tweak this list freely — invalid/missing timestamps are warned and skipped at runtime.
+TYPHOON_TIMES = [
+    # In-Fa — affected Taiwan ~July 21-25
+    "2021-07-22T12:00:00",
+    "2021-07-23T00:00:00",
+    "2021-07-23T18:00:00",
+    # Lupit — heavy rain ~August 4-6
+    "2021-08-05T00:00:00",
+    "2021-08-05T12:00:00",
+    "2021-08-06T00:00:00",
+    # Chanthu — closest approach ~September 12
+    "2021-09-11T12:00:00",
+    "2021-09-12T00:00:00",
+    "2021-09-12T12:00:00",
+    "2021-09-13T00:00:00",
+]
 
 
 def load_valid_times_2021(data_path: str) -> np.ndarray:
@@ -58,10 +85,17 @@ def main():
         help=f"Path to CWA zarr dataset. Default: {DEFAULT_DATA_PATH}",
     )
     parser.add_argument(
-        "--output",
+        "--output-val",
         type=str,
         required=True,
-        help="Output YAML file path.",
+        help="Output YAML file for validation timestamps (flat list of ISO strings).",
+    )
+    parser.add_argument(
+        "--output-test",
+        type=str,
+        required=True,
+        help="Output YAML file for test timestamps (flat list of ISO strings, "
+             "with typhoons appended at the end if --with-events).",
     )
     parser.add_argument(
         "--n-per-split",
@@ -74,6 +108,12 @@ def main():
         type=int,
         default=42,
         help="Random seed for reproducibility. Default: 42",
+    )
+    parser.add_argument(
+        "--with-events",
+        action="store_true",
+        help="Force-include the curated TYPHOON_TIMES into test_times "
+             "(reduces the random portion of test accordingly).",
     )
     args = parser.parse_args()
 
@@ -91,32 +131,73 @@ def main():
         )
         sys.exit(1)
 
+    event_times = []
+    if args.with_events:
+        available_iso = {to_iso(t) for t in valid_2021}
+        missing = [e for e in TYPHOON_TIMES if e not in available_iso]
+        if missing:
+            print(
+                f"Warning: {len(missing)} TYPHOON_TIMES not in valid 2021 set, skipping: {missing}",
+                file=sys.stderr,
+            )
+        event_times = [e for e in TYPHOON_TIMES if e in available_iso]
+        if len(event_times) > args.n_per_split:
+            print(
+                f"Error: {len(event_times)} curated events exceed --n-per-split {args.n_per_split}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        print(f"Including {len(event_times)} curated typhoon timestamp(s) in test set")
+
+    event_set = set(event_times)
+    pool_mask = np.array([to_iso(t) not in event_set for t in valid_2021])
+    pool = valid_2021[pool_mask]
+    n_random = n_needed - len(event_times)
+    if len(pool) < n_random:
+        print(
+            f"Error: only {len(pool)} non-event timestamps available, need {n_random}.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     rng = np.random.default_rng(args.seed)
-    picked_idx = rng.choice(n_available, size=n_needed, replace=False)
-    picked = valid_2021[picked_idx]
+    picked_idx = rng.choice(len(pool), size=n_random, replace=False)
+    picked = pool[picked_idx]
 
     val_times = sorted(to_iso(t) for t in picked[: args.n_per_split])
-    test_times = sorted(to_iso(t) for t in picked[args.n_per_split :])
+    test_random = picked[args.n_per_split :]
+    test_times = sorted(to_iso(t) for t in test_random) + sorted(event_times)
 
     overlap = set(val_times) & set(test_times)
     if overlap:
         print(f"Error: val/test overlap detected: {overlap}", file=sys.stderr)
         sys.exit(1)
 
-    payload = {"val_times": val_times, "test_times": test_times}
+    base_header = (
+        f"# Generated by make_eval_timestamps.py\n"
+        f"# Source: {args.data_path}\n"
+        f"# Year: 2021, seed: {args.seed}, n_per_split: {args.n_per_split}\n"
+        f"# Available valid 2021 timestamps: {n_available}\n"
+    )
+    val_header = base_header + f"# Split: validation ({len(val_times)} entries)\n\n"
+    test_header = (
+        base_header
+        + f"# Split: test ({len(test_times)} entries, "
+        + f"{len(event_times)} forced typhoon events appended at the end)\n\n"
+    )
 
-    out_path = Path(args.output)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    with out_path.open("w") as f:
-        f.write(
-            f"# Generated by make_eval_timestamps.py\n"
-            f"# Source: {args.data_path}\n"
-            f"# Year: 2021, seed: {args.seed}, n_per_split: {args.n_per_split}\n"
-            f"# Available valid 2021 timestamps: {n_available}\n\n"
-        )
-        yaml.safe_dump(payload, f, default_flow_style=False, sort_keys=False)
+    def _write_times(path_str: str, times: list, header: str):
+        path = Path(path_str)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w") as f:
+            f.write(header)
+            yaml.safe_dump({"times": times}, f, default_flow_style=False, sort_keys=False)
+        return path
 
-    print(f"Wrote {len(val_times)} val + {len(test_times)} test timestamps to {out_path}")
+    val_path = _write_times(args.output_val, val_times, val_header)
+    test_path = _write_times(args.output_test, test_times, test_header)
+    print(f"Wrote {len(val_times)} val timestamps to {val_path}")
+    print(f"Wrote {len(test_times)} test timestamps to {test_path}")
 
 
 if __name__ == "__main__":
