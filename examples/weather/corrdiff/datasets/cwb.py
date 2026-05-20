@@ -54,6 +54,36 @@ def get_target_normalizations_v2(group):
     return center, scale
 
 
+def get_target_normalizations_europa(group):
+    """Europa-tuned normalization (linear rescale, no hardcoded CWA constants).
+
+    Rationale (see normalization_design.md for the full analysis):
+      * T2: keep the empirical (center, scale) from the store. Gaussian-ish,
+        z-scoring is appropriate.
+      * Winds: anchor center at the natural zero (winds are physically
+        symmetric in sign; the empirical mean only captures the prevailing
+        synoptic flow over the training period). Keep scale at the empirical
+        std (~3.4 m/s on Europa). CWA's hardcoded scale=20 m/s is
+        typhoon-tuned and would underweight European winds.
+      * Precipitation (mm/h): anchor at the natural zero and pick
+        scale=5 mm so 5 mm/h -> z=1. This brings the implicit MSE
+        loss weight 1/scale^2 from the v1 value of ~2.25 (~152x T2)
+        down to 0.04 (~3x T2), removing the zero-inflation artefact
+        without applying a non-linear transform. CWA's hardcoded
+        scale=25 (chosen for radar dBZ) is not appropriate for mm-rain.
+    """
+    variable = group["cwb_variable"][:]
+    center = np.array(group["cwb_center"][:], dtype=np.float32)
+    scale = np.array(group["cwb_scale"][:], dtype=np.float32)
+
+    center = np.where(variable == "eastward_wind_10m", 0.0, center)
+    center = np.where(variable == "northward_wind_10m", 0.0, center)
+    center = np.where(variable == "precipitation_amount_1hr", 0.0, center)
+
+    scale = np.where(variable == "precipitation_amount_1hr", 5.0, scale)
+    return center.astype(np.float32), scale.astype(np.float32)
+
+
 class _ZarrDataset(DownscalingDataset):
     """A Dataset for loading paired training data from a Zarr-file
 
@@ -544,6 +574,7 @@ def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, embeddin
     get_target_normalization = {
         "v1": get_target_normalizations_v1,
         "v2": get_target_normalizations_v2,
+        "europa": get_target_normalizations_europa,
     }[normalization]
     logger.info(f"Normalization: {normalization}")
     zdataset = _ZarrDataset(

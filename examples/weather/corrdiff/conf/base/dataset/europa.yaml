@@ -1,0 +1,56 @@
+# Europa (Würzburg) dataset, CWA-shape derivative.
+# See europa_dataset_for_corrdiff.md for the full channel layout.
+
+# Reuses the CWA dataset loader (datasets/cwb.py::get_zarr_dataset).
+# The loader is data-driven: it reads channel counts, names, levels and
+# normalization stats directly from the zarr store, so the same loader
+# works for Europa with only the channel-index list adjusted.
+type: cwb
+
+# Path to data file. Override per-cluster in the top-level config.
+data_path: ???
+
+# Europa already contains exactly the 12 era5 channels needed
+# (no 700/925 hPa download), so use all of them.
+# Order matches design_choices.md §7.3:
+#   0 tcwv | 1-4 z/t/u/v @500 | 5-8 z/t/u/v @850 | 9-11 t2m/u10/v10
+in_channels: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+
+# cwb channels: 0 T2 | 1 U10 | 2 V10 | 3 precipitation_amount_1hr (mm)
+# (CWA channel 3 was maximum_radar_reflectivity — pre-trained weights for
+#  that channel cannot transfer; train from scratch.)
+out_channels: [0, 1, 2, 3]
+
+# Image shape: 450x450 native, crop to 448 to keep CWA contract.
+img_shape_x: 448
+img_shape_y: 448
+
+# Add positional grid embeddings.
+add_grid: true
+
+# Downscaling factor applied to the target to construct the low-res
+# conditioning (target -> downsample by ds_factor -> bicubic upsample).
+ds_factor: 4
+
+# Per-channel min/max and global mean/std files. Unused (normalization
+# stats live inside the zarr as cwb_center/scale and era5_center/scale).
+min_path: null
+max_path: null
+global_means_path: null
+global_stds_path: null
+
+# No AlphaEarth embeddings for Europa yet.
+embedding_path: null
+
+# Target normalization. See normalization_design.md for the analysis.
+#   v1     -> read empirical center/scale from the zarr (Gaussian-ish T2 fine,
+#             but precipitation ends up ~152x T2's loss weight due to
+#             zero-inflated std=0.667 mm; not used here).
+#   v2     -> CWA-tuned overrides for radar dBZ + typhoon winds; the radar
+#             branch silently doesn't fire on Europa (variable name mismatch)
+#             and the wind branch (scale=20 m/s) underweights European winds.
+#             Strictly worse than v1 on Europa; do not use.
+#   europa -> linear rescale tuned for Europe: T2 z-scored, winds anchored
+#             at zero with empirical scale, precipitation anchored at zero
+#             with scale=5 mm so 1/sigma^2 is ~3x T2 (no longer pathological).
+normalization: europa

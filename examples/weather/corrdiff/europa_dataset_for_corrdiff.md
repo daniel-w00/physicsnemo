@@ -98,3 +98,108 @@ No other code changes should be required: dtype, chunking, normalization arrays,
 - 0 NaN across all data variables in the analysis store (checked by `pipeline/verify_store.py`); validity masks set to all-True on that basis.
 - Per-channel means / stds within textbook ranges for mid-latitude Europe (annual T2 ≈ 10 °C, 500 hPa T ≈ −19 °C, 500 hPa Φ/g ≈ 5617 m, etc.).
 - Total store size: 343 GB.
+
+## Training setup on Alex (regression-only)
+
+Verified 2026-05-20: training the regression UNet on the Europa store
+needs **zero Python code changes** — `datasets/cwb.py::_ZarrDataset` already
+reads channel names, pressure levels, and per-channel normalization
+stats from the zarr at load time, and `train.py` derives model in/out
+channel counts from `dataset.input_channels()` / `output_channels()`.
+The Europa-specific divergences (12-not-20 era5 channels, precipitation
+at cwb index 3) are absorbed entirely through three config-level knobs.
+
+### Files
+
+| File | Purpose |
+|---|---|
+| [`conf/base/dataset/europa.yaml`](conf/base/dataset/europa.yaml) | Europa dataset config. `type: cwb` (reuses the CWA loader), `in_channels: [0..11]`, `out_channels: [0,1,2,3]`, `embedding_path: null`. |
+| [`conf/config_training_europa_regression-alex.yaml`](conf/config_training_europa_regression-alex.yaml) | Top-level Hydra config. Pulls `dataset: europa`, `model: regression`, hooks `val_times_2021.yaml` into the validation split. `checkpoint_dir: /checkpoints/europa/reg_eu_pure_v1`. |
+| [`jobs/alex/europa_regression.slurm`](jobs/alex/europa_regression.slurm) | Alex SLURM script. A100-80 GB, binds `/anvme/workspace/b214cb18-ws-daniel2` 1:1, uses the zarr-v3 container. |
+
+### Channel-config rationale
+
+CWA used `in_channels: [0,1,2,3,4,9,10,11,12,17,18,19]` to pick 12 of its
+20 era5 channels. The Europa store already contains *only* those 12
+channels in the same physical order (`tcwv`, `(z,t,u,v)` @ 500, `(z,t,u,v)`
+@ 850, `t2m`, `u10`, `v10`), so we use `in_channels: [0..11]` straight.
+`out_channels: [0,1,2,3]` is unchanged; channel 3 went from
+`maximum_radar_reflectivity` (dBZ, ≈[15, 15]) to `precipitation_amount_1hr`
+(mm, center≈0.108, scale≈0.667) — same index, different distribution, so
+**pre-trained CWA regression weights cannot transfer for the precip
+channel.** Train from scratch.
+
+### Normalization
+
+The Europa config uses **`normalization: europa`**, a Europe-tuned
+linear rescale defined in `get_target_normalizations_europa`
+([cwb.py:57-85](datasets/cwb.py#L57-L85)). It does the following:
+
+| Channel | center | scale | Rationale |
+|---|---:|---:|---|
+| `temperature_2m`           | 283.24 (empirical) | 8.24 (empirical) | Gaussian-ish; z-score from store stats. |
+| `eastward_wind_10m`        | **0** | 3.43 (empirical) | Anchor at natural zero (winds are sign-symmetric); empirical scale unchanged. |
+| `northward_wind_10m`       | **0** | 3.26 (empirical) | Same. |
+| `precipitation_amount_1hr` | **0** | **5 mm** | Anchor at natural zero; scale=5 chosen so 1/σ² ≈ 0.04, putting precip ~2.7× T2's implicit MSE weight (vs. ~152× under v1). |
+
+Why not the other variants:
+
+- **`v1`** (read empirical center/scale from the zarr) — gives precipitation
+  σ ≈ 0.667 mm, which produces an implicit MSE loss weight ~152× that of
+  T2 because mm-precip is zero-inflated. The optimizer would burn most
+  of its gradient budget on precip pixels.
+- **`v2`** (CWA defaults) — its radar branch matches
+  `"maximum_radar_reflectivity"`, which doesn't exist on Europa, so
+  precip silently falls back to v1 stats (no fix). Its wind branch
+  forces `scale=20 m/s`, tuned for Taiwanese typhoons, which actively
+  *underweights* European winds (Würzburg gusts rarely exceed 15 m/s).
+  Strictly worse than v1 on Europa.
+
+The `europa` variant fixes the cross-channel imbalance with a single
+linear rescale and no non-linear transform. It does *not* address the
+heavy-tail training-stability concern from individual convective pixels
+— that would require a log1p / asinh transform, which is the next-step
+refinement analysed in [normalization_design.md](normalization_design.md).
+
+### Validation split — reusing the CWA 256-timestamp list
+
+[`conf/val_times_2021.yaml`](conf/val_times_2021.yaml) was originally
+sampled from CWA's valid-2021 pool (6109 timestamps). Every entry is a
+2021 hour, and Europa has *all* 2021 hours valid (`era5_valid` and
+`cwb_valid` both all-True), so the list is reused verbatim — no
+regeneration needed. Hooked in via Hydra:
+
+```yaml
+defaults:
+  - val_times_2021@_val_times
+
+validation:
+  train: false
+  all_times: false
+  include_times: ${_val_times.times}
+```
+
+`get_zarr_dataset` detects `include_times` and bypasses the `is_2021` /
+`is_not_2021` filter (forces `all_times=True` internally), so the
+training split is the natural complement (2018–2020 + the 2021 hours
+**not** in the val list).
+
+### Container
+
+The Europa store is zarr v3 (only `zarr.json`, no `.zgroup` /
+`.zmetadata`). The default `~/apptainer/corrdiff_10_02.sif` (zarr 2.18)
+**cannot** read it. The SLURM script uses
+`~/apptainer/corrdiff_zarr3.sif` (zarr 3.1.5). Spot-checked: opens
+cleanly via `zarr.open_consolidated()`, all expected variables present,
+shapes/dtypes/stats match this document, `time` units `"hours since
+2018-01-01"` decode correctly through `cftime.num2date`.
+
+### Launch
+
+```bash
+sbatch jobs/alex/europa_regression.slurm
+```
+
+Checkpoints land in `$WORK/checkpoints/europa/reg_eu_pure_v1/` on the
+host (mapped to `/checkpoints/europa/reg_eu_pure_v1` inside the
+container).

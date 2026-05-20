@@ -1,0 +1,57 @@
+# Top-level training config: CorrDiff regression on the Europa
+# (Würzburg) dataset, running on the Alex cluster.
+
+hydra:
+    job:
+          chdir: false
+          name: europa_regression
+    run:
+          dir: ./output/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+defaults:
+    - dataset: europa
+    # Europa-specific channel layout (12 era5 channels, precipitation
+    # at cwb index 3). See conf/base/dataset/europa.yaml.
+
+    - model: regression
+    - model_size: normal
+    - training: ${model}
+
+    - val_times_2021@_val_times
+    # Curated 256 validation timestamps from 2021 (conf/val_times_2021.yaml).
+    # Originally sampled from CWA's valid-2021 pool; every entry is a 2021
+    # hour and Europa has all 2021 hours valid, so the list is reused as-is.
+
+# Dataset overrides (data path on Alex)
+dataset:
+    data_path: /anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr
+
+# Training parameters
+training:
+    hp:
+        training_duration: 2_000_000
+        lr_rampup: 10_000
+        total_batch_size: 256
+        batch_size_per_gpu: 4
+    io:
+      print_progress_freq: 4000
+      save_n_recent_checkpoints: 14
+      checkpoint_dir: /checkpoints/europa/reg_eu_pure_v1
+      save_checkpoint_freq: 100_000
+      # validate every 5000 samples (default from base_all.yaml)
+
+# Validation: use only the 256 curated 2021 timestamps.
+# get_zarr_dataset bypasses the year-2021 train/test split when
+# include_times is set (forces all_times=True internally).
+validation:
+    train: false
+    all_times: false
+    include_times: ${_val_times.times}
+
+# Parameters for wandb logging
+wandb:
+    mode: online
+    results_dir: "./wandb"
+    watch_model: false
