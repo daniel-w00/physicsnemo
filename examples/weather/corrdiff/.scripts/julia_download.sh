@@ -16,7 +16,7 @@ rsync -avz \
     --exclude=".venv/" \
     --exclude="wandb/" \
     --exclude="tensorboard/" \
-    --exclude=".claude/" \
+    --exclude=".claude/settings.local.json" \
     --exclude="checkpoints/" \
     "$CLUSTER_USER@$CLUSTER_ADRESSE:$CLUSTER_PFAD/" \
     "$LOKALER_PFAD/"
