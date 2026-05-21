@@ -31,13 +31,13 @@ dataset:
 # Training parameters
 training:
     hp:
-        training_duration: 2_000_000
+        training_duration: 1_000_000
         lr_rampup: 10_000
         total_batch_size: 256
         batch_size_per_gpu: 4
     io:
       print_progress_freq: 4000
-      save_n_recent_checkpoints: 14
+      save_n_recent_checkpoints: 5
       checkpoint_dir: /checkpoints/europa/reg_eu_pure_v1
       save_checkpoint_freq: 100_000
       # validate every 5000 samples (default from base_all.yaml)
@@ -50,8 +50,15 @@ validation:
     all_times: false
     include_times: ${_val_times.times}
 
+# Model meta (architecture variants — also surfaced to wandb)
+model:
+    embed: none               # none | alpha | olmo
+    embed_version: v1         # v1 | v2 | na
+
 # Parameters for wandb logging
 wandb:
     mode: online
     results_dir: "./wandb"
     watch_model: false
+    tags: []                  # override on CLI: 'wandb.tags=[olmo,v1]'
+    resume_id: null           # set to existing wandb run id to resume logging

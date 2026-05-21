@@ -84,6 +84,70 @@ def get_target_normalizations_europa(group):
     return center.astype(np.float32), scale.astype(np.float32)
 
 
+def get_target_normalizations_v3_europa(group):
+    """Europa-tuned normalization with log1p variance stabilization on precip.
+
+    Identical to `europa` for T2 and winds; the precipitation channel is
+    additionally pre-transformed with log1p before the linear (center, scale)
+    rescale. This converts mm/h to an approximately log-scale quantity --
+    conceptually the same operation that dBZ already encodes for CWA radar
+    (dBZ = 10 * log10(Z)). After log1p the conditional distribution of
+    precip|precip>0 is roughly Gaussian, so z-scoring becomes the right
+    operation for it.
+
+    Returned tuple is (center, scale, fwd_transforms, inv_transforms) where
+    fwd/inv are per-channel callables (or None for identity). Applied as:
+        normalized = (fwd(x) - center) / scale
+        denormalized = inv(normalized * scale + center)
+
+    Channel layout on Europa (cwb_variable order):
+        0: temperature_2m            -- identity, empirical (mu, sigma)
+        1: eastward_wind_10m         -- identity, (0, empirical sigma)
+        2: northward_wind_10m        -- identity, (0, empirical sigma)
+        3: precipitation_amount_1hr  -- log1p / expm1, (0, 1) post-transform
+
+    Scale=1 post-log1p means a 50 mm/h convective pixel maps to log(51)~3.93,
+    comparable to a 3-sigma T2 deviation -- no more single-pixel storms
+    dominating the minibatch gradient.
+
+    Caveat: log1p is concave, so back-transforming the regression mean via
+    expm1 introduces a small Jensen-style negative bias on the conditional
+    mean of precipitation. In the full two-stage CorrDiff pipeline this bias
+    is absorbed by the residual diffusion stage. See normalization_design.md
+    section 8 for the analysis.
+    """
+    variable = group["cwb_variable"][:]
+    center = np.array(group["cwb_center"][:], dtype=np.float32)
+    scale = np.array(group["cwb_scale"][:], dtype=np.float32)
+
+    center = np.where(variable == "eastward_wind_10m", 0.0, center)
+    center = np.where(variable == "northward_wind_10m", 0.0, center)
+    center = np.where(variable == "precipitation_amount_1hr", 0.0, center)
+
+    # Post-log1p the precip distribution is on a log scale; scale=1 keeps
+    # the normalized values in roughly [0, 4] for events up to 50 mm/h.
+    scale = np.where(variable == "precipitation_amount_1hr", 1.0, scale)
+
+    n = len(variable)
+    fwd = [None] * n
+    inv = [None] * n
+    precip_idx = int(np.where(variable == "precipitation_amount_1hr")[0][0])
+    fwd[precip_idx] = np.log1p
+    inv[precip_idx] = np.expm1
+
+    return center.astype(np.float32), scale.astype(np.float32), fwd, inv
+
+
+def _resolve_target_normalization(result, n_channels):
+    """Accept either a 2-tuple (center, scale) or a 4-tuple
+    (center, scale, fwd, inv) from a normalization function, and return the
+    canonical 4-tuple with identity-by-default transform lists."""
+    if len(result) == 2:
+        center, scale = result
+        return center, scale, [None] * n_channels, [None] * n_channels
+    return result
+
+
 class _ZarrDataset(DownscalingDataset):
     """A Dataset for loading paired training data from a Zarr-file
 
@@ -181,6 +245,32 @@ class _ZarrDataset(DownscalingDataset):
             stds = stds[channels]
         return (means, stds)
 
+    def _resolved_target_norm(self, channels=None):
+        """Return (center, scale, fwd, inv) for the output channels, with
+        optional channel subsetting applied uniformly to all four."""
+        center, scale, fwd, inv = _resolve_target_normalization(
+            self.get_target_normalization(self.group),
+            n_channels=int(self.group["cwb_variable"].shape[0]),
+        )
+        if channels is not None:
+            center = np.asarray(center)[channels]
+            scale = np.asarray(scale)[channels]
+            fwd = [fwd[c] for c in channels]
+            inv = [inv[c] for c in channels]
+        return center, scale, fwd, inv
+
+    @staticmethod
+    def _apply_per_channel(x, fns):
+        """Apply per-channel callables (or None for identity) to a (N, C, H, W)
+        array along the channel axis. Returns a new array; input is untouched."""
+        if all(fn is None for fn in fns):
+            return x
+        out = np.asarray(x).copy()
+        for c, fn in enumerate(fns):
+            if fn is not None:
+                out[:, c] = fn(out[:, c])
+        return out
+
     def normalize_input(self, x, channels=None):
         """Convert input from physical units to normalized data."""
         norm = self._select_norm_channels(
@@ -197,19 +287,20 @@ class _ZarrDataset(DownscalingDataset):
 
     def normalize_output(self, x, channels=None):
         """Convert output from physical units to normalized data."""
-        norm = self.get_target_normalization(self.group)
-        norm = self._select_norm_channels(*norm, channels)
-        return normalize(x, *norm)
+        center, scale, fwd, _ = self._resolved_target_norm(channels)
+        x = self._apply_per_channel(x, fwd)
+        return normalize(x, center, scale)
 
     def denormalize_output(self, x, channels=None):
         """Convert output from normalized data to physical units."""
-        norm = self.get_target_normalization(self.group)
-        norm = self._select_norm_channels(*norm, channels)
-        return denormalize(x, *norm)
+        center, scale, _, inv = self._resolved_target_norm(channels)
+        x = denormalize(x, center, scale)
+        return self._apply_per_channel(x, inv)
 
     def info(self):
+        center, scale, _, _ = self._resolved_target_norm()
         return {
-            "target_normalization": self.get_target_normalization(self.group),
+            "target_normalization": (center, scale),
             "input_normalization": (
                 self.group["era5_center"][:],
                 self.group["era5_scale"][:],
@@ -575,6 +666,7 @@ def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, embeddin
         "v1": get_target_normalizations_v1,
         "v2": get_target_normalizations_v2,
         "europa": get_target_normalizations_europa,
+        "v3_europa": get_target_normalizations_v3_europa,
     }[normalization]
     logger.info(f"Normalization: {normalization}")
     zdataset = _ZarrDataset(

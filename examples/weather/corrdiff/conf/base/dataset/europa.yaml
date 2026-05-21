@@ -43,14 +43,22 @@ global_stds_path: null
 embedding_path: null
 
 # Target normalization. See normalization_design.md for the analysis.
-#   v1     -> read empirical center/scale from the zarr (Gaussian-ish T2 fine,
-#             but precipitation ends up ~152x T2's loss weight due to
-#             zero-inflated std=0.667 mm; not used here).
-#   v2     -> CWA-tuned overrides for radar dBZ + typhoon winds; the radar
-#             branch silently doesn't fire on Europa (variable name mismatch)
-#             and the wind branch (scale=20 m/s) underweights European winds.
-#             Strictly worse than v1 on Europa; do not use.
-#   europa -> linear rescale tuned for Europe: T2 z-scored, winds anchored
-#             at zero with empirical scale, precipitation anchored at zero
-#             with scale=5 mm so 1/sigma^2 is ~3x T2 (no longer pathological).
-normalization: europa
+#   v1         -> read empirical center/scale from the zarr (Gaussian-ish T2
+#                 fine, but precipitation ends up ~152x T2's loss weight due
+#                 to zero-inflated std=0.667 mm; not used here).
+#   v2         -> CWA-tuned overrides for radar dBZ + typhoon winds; the
+#                 radar branch silently doesn't fire on Europa (variable
+#                 name mismatch) and the wind branch (scale=20 m/s)
+#                 underweights European winds. Strictly worse than v1 on
+#                 Europa; do not use.
+#   europa     -> linear rescale tuned for Europe: T2 z-scored, winds
+#                 anchored at zero with empirical scale, precipitation
+#                 anchored at zero with scale=5 mm so 1/sigma^2 is ~3x T2
+#                 (no longer pathological, but heavy tail not stabilised).
+#   v3_europa  -> as `europa` plus log1p variance-stabilizing transform on
+#                 the precipitation channel (and scale=1 post-transform).
+#                 Standard practice in the precipitation-ML literature;
+#                 conceptually equivalent to CWA's dBZ representation.
+#                 Has a small Jensen bias in regression-only mode that is
+#                 absorbed by the diffusion stage in the full pipeline.
+normalization: v3_europa

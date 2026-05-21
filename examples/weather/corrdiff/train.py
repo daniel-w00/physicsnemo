@@ -123,19 +123,32 @@ def main(cfg: DictConfig) -> None:
     if dist.rank == 0:
         writer = SummaryWriter(log_dir="tensorboard")
 
-        ### Hier wandb ### resume muss manuell in code gesetzt werden
-        ## für multi gpu - nur rank 0 loggt, train loss undso muss dann in rank 0
-        #war früher außerhalb dieses ifs
-        initialize_wandb(
+        # multi-GPU: only rank 0 logs to wandb.
+        # region from Hydra's chosen dataset variant (europa | cwb | ...);
+        # stage from chosen model variant (regression | diffusion | ...).
+        # Calling wandb.init directly (not physicsnemo's initialize_wandb)
+        # because the wrapper doesn't pass job_type/tags and mangles the name
+        # with a timestamp suffix.
+        region = HydraConfig.get().runtime.choices.dataset
+        stage = cfg.model.name
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        run_name = f"{region}-{stage}-{cfg.model.embed}-{cfg.model.embed_version}-{timestamp}"
+
+        wandb_dir = cfg.wandb.results_dir or "./wandb"
+        os.makedirs(wandb_dir, exist_ok=True)
+
+        wandb.init(
             project="corrdiff-test",
             entity="daniel-w-uni",
-            name=f"CorrDiff-Training-{HydraConfig.get().job.name}",
-            group="CorrDiff-DDP-Group",
+            name=run_name,
+            group=f"{region}-{stage}",
+            job_type=stage,
+            tags=list(cfg.wandb.tags) if cfg.wandb.tags else None,
             mode=cfg.wandb.mode,
-            config=OmegaConf.to_container(cfg),
-            results_dir=cfg.wandb.results_dir,
-#            resume="allow",
- #           wandb_id="zuxek7d4",
+            config=OmegaConf.to_container(cfg, resolve=True),
+            dir=wandb_dir,
+            resume="allow" if cfg.wandb.resume_id else None,
+            id=cfg.wandb.resume_id,
         )
 
 

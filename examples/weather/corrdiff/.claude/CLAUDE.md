@@ -14,8 +14,9 @@ Login node hostname: `alex1.nhr.fau.de`. Detect via `$CLUSTER == alex` or `hostn
 
 Paths on Alex differ from Julia2 — the data/container locations above are Julia2; on Alex use:
 
-- **Europa training dataset (zarr v2, CWA-shape)**: `/anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr` (345 GB)
+- **Europa training dataset (zarr v3, CWA-shape)**: `/anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr` (345 GB)
   - Same schema as the Julia2 store documented in [europa_dataset_for_corrdiff.md](../europa_dataset_for_corrdiff.md): cwb (time, 4, 450, 450), era5 (time, **12**, 450, 450), 35064 hourly steps 2018–2021.
+  - Store is **zarr v3** (has `zarr.json`, no `.zmetadata`) — must be opened with `corrdiff_zarr3.sif`.
   - Use this path on Alex instead of the `/data/42-julia-hpc-rz-lsx/s373395/...` path referenced in `europa_dataset_for_corrdiff.md`.
 - **Apptainer images** live in `~/apptainer/`:
   - `corrdiff_10_02.sif` — zarr 2.18.3 image (matches the Julia2 setup).

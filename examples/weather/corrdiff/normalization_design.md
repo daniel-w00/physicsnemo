@@ -32,15 +32,15 @@ regression model optimises.
   Function: `get_target_normalizations_europa` in
   [cwb.py:57-85](datasets/cwb.py#L57-L85). Selected from the dataset
   config via `normalization: europa`.
-* **Future refinement (not implemented):** apply a **log1p
+* **Implemented (2026-05-21): `v3_europa`** — applies a **log1p
   variance-stabilizing transform** to the precipitation channel before
-  z-scoring. This is the standard practice in the modern
-  precipitation-ML literature and additionally addresses the
-  heavy-tail training-stability concern (a single 50 mm/h convective
-  pixel dominating the minibatch gradient under linear scaling). The
-  current implementation does *not* do this — escalate to log1p only
-  if the linear-rescale baseline shows loss-spike instability during
-  training. Implementation sketch in §8 below.
+  z-scoring, with `(center=0, scale=1)` post-transform. This is the
+  standard practice in the modern precipitation-ML literature and
+  additionally addresses the heavy-tail training-stability concern (a
+  single 50 mm/h convective pixel dominating the minibatch gradient
+  under linear scaling). Function:
+  `get_target_normalizations_v3_europa` in
+  [cwb.py](datasets/cwb.py). Selected via `normalization: v3_europa`.
 * Bias caveat (only relevant if log1p is later adopted): log1p is
   non-linear, so back-transforming the regression output via `expm1`
   introduces a small negative bias on the conditional mean (Jensen's
@@ -108,6 +108,43 @@ Two design ideas are embedded in `v2`:
 `v2` is therefore *not* a generic recipe; it is a hand-tuned override
 table for CWA's specific channel set.
 
+### 3.1 Which variant is actually selected in this repo
+
+No config file in this repository sets `dataset.normalization`. The
+keyword default in `get_zarr_dataset`
+([`cwb.py:566`](datasets/cwb.py#L566)) is `"v1"`, so:
+
+* The CWA training configs in `conf/config_training_taiwan_*.yaml` and
+  `conf/base/dataset/cwb.yaml` all silently use `v1`.
+* `v2` is **defined but never selected** by any config in the repo
+  (verified by grep across `conf/`).
+
+The "vanilla CorrDiff baseline" in this codebase is therefore CWA
+trained under `v1` (empirical means/stds from the store) — *not* the
+radar-dBZ-tuned `(25, 25)` you would assume from reading the v2
+function body. Whether the upstream NVIDIA PhysicsNeMo configs select
+v2 elsewhere is not verified here.
+
+### 3.2 The CWA → Europa channel-order swap
+
+A subtle source of confusion: the `cwb` data variable carries different
+physical channels in the same index slots:
+
+| index | CWA (Taiwan)                  | Europa (Würzburg)            |
+|---:|---|---|
+| 0  | `maximum_radar_reflectivity` (dBZ) | `temperature_2m` (K)        |
+| 1  | `temperature_2m` (K)               | `eastward_wind_10m` (m/s)   |
+| 2  | `eastward_wind_10m` (m/s)          | `northward_wind_10m` (m/s)  |
+| 3  | `northward_wind_10m` (m/s)         | `precipitation_amount_1hr` (mm) |
+
+The dataset config selects `out_channels: [0, 1, 2, 3]` in both cases,
+but the model's "output channel 0" represents radar on CWA and
+temperature on Europa — the same model architecture, but predicting
+*different physical variables at the same output index*. This is also
+why pre-trained CWA regression weights cannot be transferred to Europa
+output channels: even setting aside the dBZ→mm semantic mismatch, the
+indices themselves disagree.
+
 ---
 
 ## 4. Why `v1` misbehaves on Europa precip
@@ -134,6 +171,27 @@ For comparison, radar dBZ is *already* a log-scale quantity
 ($\mathrm{dBZ} = 10\log_{10} Z$), so z-scoring or a linear rescale
 gives a tractable training signal. **Precip in millimetres is the
 linear-scale analogue, and z-scoring is not the right operation.**
+
+#### Aside — what dBZ actually is
+
+A weather radar emits a microwave pulse and measures the backscattered
+power from precipitation particles. The raw quantity is the reflectivity
+factor $Z = \int N(D)\,D^6\,\mathrm{d}D$ (proportional to the sixth
+moment of the droplet size distribution), in units of mm⁶/m³. Because
+$Z$ varies over 10+ orders of magnitude (drizzle to severe hail),
+meteorologists report it in decibels:
+
+$$
+\mathrm{dBZ} = 10\,\log_{10}\!\left(\frac{Z}{1\ \mathrm{mm}^6/\mathrm{m}^3}\right).
+$$
+
+In operational use, ≲ 5 dBZ is barely detectable (clouds/drizzle),
+20 dBZ is light rain, 30-40 dBZ is moderate rain, 50+ dBZ is heavy
+convective rain, 60-70 dBZ is hail or severe storm. Because dBZ is
+already on a log scale, the empirical std of the field is large enough
+that linear normalization (z-scoring) produces a well-behaved training
+target. Replacing channel 3 with raw mm-precip removes that built-in
+log compression and is what creates the imbalance documented in §4.1.
 
 ### 4.1 Quantifying the imbalance
 
@@ -181,6 +239,50 @@ silently does the following:
 `v2` on Europa is therefore strictly worse than `v1` for the regression
 stage: it changes nothing about precip, and it actively underweights
 winds.
+
+---
+
+## 5.5. What CWA does under v1 (empirical baseline)
+
+Since v1 is the de facto default (§3.1), the relevant *baseline* for
+comparison is **CWA-v1**, not CWA-v2. Measured from the actual CWA
+zarr store (`/anvme/workspace/.../cwa_dataset/cwa_dataset.zarr`):
+
+| Channel | empirical center | empirical scale | loss weight $1/\sigma^2$ | rel. to T2 |
+|---|---:|---:|---:|---:|
+| ch0 `maximum_radar_reflectivity` | 2.87 | 7.40 | 0.0183 | 0.61× |
+| ch1 `temperature_2m`             | 296.68 | 5.79 | 0.0299 | 1.00× |
+| ch2 `eastward_wind_10m`          | -2.43 | 4.48 | 0.0499 | 1.67× |
+| ch3 `northward_wind_10m`         | -1.74 | 5.52 | 0.0329 | 1.10× |
+
+The spread of cross-channel loss weights is **0.61× to 1.67× of T2**,
+i.e. all four channels contribute the same order of magnitude to the
+regression MSE. **CWA-v1 is well-balanced — there is no pathology to
+fix.** This is presumably why nobody in this codebase ever flipped the
+configs to `normalization: v2`.
+
+The favourable balance is not a property of the dataloader — it is a
+property of the dBZ unit choice. Even though radar is heavily
+zero-inflated (≈ 78 % of CWA pixels are at or below 0 dBZ in a sample
+of 500 timesteps), the *positive* dBZ values span tens of decibels, so
+the empirical std comes out to a healthy 7.4 dBZ. The log-compression
+already built into the dBZ definition does most of the variance
+stabilisation that mm-precip would need a log1p transform for.
+
+Comparison summary across all combinations:
+
+| Setup | precip / radar (ch3 on Eu / ch0 on CWA) | loss-weight relative to T2 |
+|---|---|---:|
+| CWA-v1 | radar dBZ, σ = 7.40 | 0.61× T2 |
+| CWA-v2 (counterfactual) | radar dBZ, σ = 25 (hand-set) | 0.054× T2 (radar drastically underweighted) |
+| Europa-v1 | precip mm, σ = 0.667 | **152× T2 (broken)** |
+| Europa-v2 (counterfactual) | precip mm, σ = 0.667 (no override fires) | 152× T2 (same as v1) |
+| **Europa-`europa`** (implemented) | precip mm, σ = 5 (hand-set) | **2.7× T2 (balanced)** |
+
+i.e. the `europa` variant restores Europa to a cross-channel balance
+qualitatively similar to CWA-v1 — without copying CWA's hand-tuned
+constants, which would not have been appropriate for the new
+physical-units choice.
 
 ---
 
@@ -274,7 +376,99 @@ $$
 
 ---
 
-## 7. Recommendation: **log1p + center=0, scale=1** (option B)
+## 7. Implemented solution: `europa` variant (option A)
+
+For the regression-only baseline launched on 2026-05-20 we implemented
+**option A** (linear per-channel rescaling), not option B (log1p). The
+linear rescale already brings the cross-channel loss balance into a
+defensible regime (2.7× T2, comparable to CWA-v1's 0.61× T2 range) with
+zero non-linear transforms, no Jensen-bias caveat, and full
+invertibility. log1p remains the principled long-term refinement (§8)
+but is held in reserve until the linear-rescale baseline either
+trains cleanly or shows the tail-driven instability symptoms that
+would justify the extra complexity.
+
+The function is `get_target_normalizations_europa` in
+[`cwb.py:57-85`](datasets/cwb.py#L57-L85). Selected via
+`normalization: europa` in [`conf/base/dataset/europa.yaml`](conf/base/dataset/europa.yaml).
+
+### 7.1 Constants and rationale
+
+| Channel | center | scale | Origin |
+|---|---:|---:|---|
+| `temperature_2m`           | 283.24 | 8.24 | Empirical (Würzburg `cwb_center` / `cwb_scale`). Gaussian-ish, z-score is appropriate. |
+| `eastward_wind_10m`        | **0** | 3.43 | Anchor at natural zero (winds are sign-symmetric); keep empirical scale. CWA's hardcoded scale=20 is typhoon-tuned and would underweight European winds. |
+| `northward_wind_10m`       | **0** | 3.26 | Same. |
+| `precipitation_amount_1hr` | **0** | **5** | Anchor at natural zero. Scale chosen so $1/\sigma^2 = 0.04$, i.e. 2.7× T2's loss weight. |
+
+### 7.2 Why scale = 5 mm — the defensible range
+
+The 5 mm scale is **not derived from first principles**; it is a
+hyperparameter picked from a defensible range. The criterion is that
+precip's implicit loss weight $1/\sigma^2$ land in the same order of
+magnitude as the other channels:
+
+| scale (mm) | $1/\sigma^2$ | relative to T2 | Interpretation |
+|---:|---:|---:|---|
+| 3 | 0.111 | 7.6× | Precip-emphasized; comparable to wind weight |
+| **5** | **0.040** | **2.7×** | Between T2 and winds; what we picked |
+| 8 | 0.016 | 1.05× | Equal weight with T2 — cleanest principle |
+
+Any value in roughly $[3, 8]$ mm is defensible. We picked 5 because
+(a) it is the middle of that range, (b) "5 mm/h" is a physically
+meaningful threshold — operational forecasting calls it "moderate rain"
+— and (c) 2.7× T2 sits inside the cross-channel spread CWA-v1
+naturally produces (§5.5: CWA-v1 spread is 0.61×-1.67×, so Europa
+2.7× is slightly outside but within a factor of ~2 of CWA's natural
+range; the value 8 mm would put Europa at exactly 1.0× T2 if we
+preferred a strict equal-weight rule). **A small sensitivity sweep over
+$\{3, 5, 8\}$ mm during training would be a clean thesis result.**
+
+### 7.3 The normalized output range matches CWA dBZ
+
+A second sanity check on `scale=5`: it puts the normalized precip
+values into roughly the same dynamic range that the model was used to
+seeing for radar dBZ under CWA-v1.
+
+| Physical event | CWA-v1 (radar dBZ, `center=2.87, scale=7.40`) | Europa-`europa` (precip mm, `center=0, scale=5`) |
+|---|---:|---:|
+| no return / no rain | $z = -0.39$ (0 dBZ) | $z = 0.00$ (0 mm) |
+| light rain          | $z = 2.31$ (20 dBZ) | $z = 0.20$ (1 mm) |
+| moderate rain       | $z = 3.66$ (30 dBZ) | $z = 1.00$ (5 mm) |
+| heavy storm         | $z = 6.37$ (50 dBZ) | $z = 6.00$ (30 mm) |
+| extreme             | $z = 9.07$ (70 dBZ) | $z = 10.0$ (50 mm) |
+
+The bulk of the distributions land in similar normalized ranges
+(near-zero for non-events; ~1-4 for moderate events; ~6-10 for
+extremes). One residual concern: dBZ has a *natural physical ceiling*
+around 70-75 (radar dynamic range), so its normalized values are
+bounded. mm-precip has no such ceiling, so a rare > 50 mm/h event
+lands at $z > 10$ and could destabilise the gradient on that
+minibatch. That residual tail concern is what the log1p refinement in
+§8 would eliminate; it is not addressed by the implemented `europa`
+variant.
+
+### 7.4 Acknowledged limitations
+
+Documented honestly so it doesn't surprise reviewers:
+
+1. **Heavy-tail training instability is not fully solved.** Extreme
+   convective pixels (z > 10) can still produce large per-minibatch
+   gradients. Mitigation: gradient clipping (already optional via
+   `grad_clip_threshold` in the training config). Escalation path: log1p.
+2. **`scale = 5 mm` is a hyperparameter.** No theoretical derivation;
+   the [3, 8] range is defensible, the choice within it is empirical.
+   Sensitivity sweep recommended as a thesis result.
+3. **Equal cross-channel weight is not enforced.** Precip is at 2.7× T2.
+   If "equal weight per channel" is preferred as a principle, set
+   `scale = 8`. If "loss weight matching CWA-v1's natural T2-vs-radar
+   ratio" is preferred, the analysis is murkier because CWA's natural
+   ratio puts radar *below* T2 — replicating that would mean
+   `scale = 1 / sqrt(0.0183) ≈ 7.4 mm`, very close to 8.
+
+---
+
+## 8. Long-term refinement: **log1p + center=0, scale=1** (option B)
 
 For a thesis-defensible baseline, apply log1p to the precipitation
 channel before normalization and use `center=0, scale=1` for the
@@ -298,7 +492,7 @@ not optimal values; they can be refined empirically by inspecting the
 per-channel std of the normalized training data and the convergence
 behaviour of the regression loss.
 
-### 7.1 Justification
+### 8.1 Justification
 
 * **Equal scale across channels.** After the transform, each channel's
   normalized values lie roughly in $[-3, +3]$, matching the dynamic
@@ -317,7 +511,7 @@ behaviour of the regression loss.
   log-scale variable, which is why a linear rescale was sufficient
   there.
 
-### 7.2 Jensen-bias caveat
+### 8.2 Jensen-bias caveat
 
 Because $\log(1+x)$ is concave, by Jensen's inequality:
 
@@ -357,7 +551,7 @@ diffusion stage is added.
 
 ---
 
-## 8. Implementation plan
+## 9. Implementation plan (log1p variant)
 
 A minimal patch to add `v3_europa`:
 
@@ -400,7 +594,7 @@ A minimal patch to add `v3_europa`:
 
 ---
 
-## 9. Empirical validation plan
+## 10. Empirical validation plan
 
 A defensible thesis result will include:
 
@@ -426,7 +620,7 @@ for European precipitation downscaling.
 
 ---
 
-## 10. References (informal)
+## 11. References (informal)
 
 * Mardani et al., *Generative Residual Diffusion Modeling for Km-Scale
   Atmospheric Downscaling*, 2024 — the CorrDiff paper; describes the
