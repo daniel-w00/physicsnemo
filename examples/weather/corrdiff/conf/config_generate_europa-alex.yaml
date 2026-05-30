@@ -1,0 +1,72 @@
+# Generation config: CorrDiff inference on the Europa (Würzburg) dataset,
+# Alex cluster. Full pipeline (regression + diffusion) on the held-out
+# TEST timestamp split (disjoint from the validation set used in training).
+
+hydra:
+    job:
+          chdir: false
+          name: generate_europa
+    run:
+          dir: ./outputs/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+defaults:
+    - dataset: europa
+    # Europa channel layout (12 era5 in, 4 cwb out). See conf/base/dataset/europa.yaml.
+
+    - generation: non_patched
+    # Europa models are non-patched (plain regression + diffusion).
+
+    - test_times_2021@_test_times
+    # Held-out 256 test timestamps + 10 forced typhoon events (conf/test_times_2021.yaml).
+    # Disjoint from val_times_2021 used during training, so this is an unbiased eval set.
+
+# Dataset overrides (Alex path). No embedding_path — Europa has no AlphaEarth embeddings.
+dataset:
+    data_path: /anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr
+    train: False
+    all_times: True   # disable year filter; the explicit `times` list below selects what to generate
+
+# Generation parameters
+generation:
+    num_ensembles: 16
+    # Diffusion ensemble members per input timestamp. 16 gives a decent spread for
+    # CRPS / spread-skill evaluation. Raise to 32+ for tighter statistics (more compute).
+    seed_batch_size: 16
+    # Ensemble members per diffusion forward pass (VRAM-bound, inference only so no backward).
+    # With num_ensembles=16 this is 1 pass/timestamp. Est. ~10-20 GB on the 80 GB A100 (large headroom).
+
+    hr_mean_conditioning: true
+    # MUST match training. The Europa diffusion model was trained with
+    # hr_mean_conditioning=true, so inference must use true as well, otherwise the
+    # model gets a different input-channel layout than it saw during training.
+
+    times_range: null
+    # Use the explicit test-set list below instead of a date range.
+    times: ${_test_times.times}
+    # The held-out test timestamps (from conf/test_times_2021.yaml).
+
+    save_input: true
+    # Save the ERA5 LR input alongside predictions (for plotting / direct comparison).
+    # Increases output file size by ~55%. Set false later to shrink files once you don't need it.
+
+    inference_mode: all
+    # "all" = regression mean + diffusion residual (full CorrDiff). Use "regression" for
+    # mean-only baseline, "diffusion" for residual-only (rarely useful standalone).
+
+    io:
+        reg_ckpt_filename: /checkpoints/europa/reg_eu_pure_v1/checkpoints_regression/UNet.0.2000128.mdlus
+        # Mean predictor — MUST be the same regression checkpoint used to condition diffusion training.
+
+        res_ckpt_filename: /checkpoints/europa/diff_eu_v1/checkpoints_diffusion/EDMPrecondSuperResolution.0.1500160.mdlus
+        # Diffusion (residual) model — final checkpoint of the diff_eu_v1 run (1.5M target reached).
+
+        output_filename: "/home/vault/b214cb/b214cb18/generated/diff_eu_v1-test2021.nc"
+        # On HPCVAULT (long-term storage for large outputs). Absolute path — generate.py uses it
+        # directly (nc.Dataset(output_path, "w")). The slurm script mkdir's + binds this dir.
+
+# wandb not needed for generation
+wandb:
+    mode: offline
+    results_dir: "./wandb"

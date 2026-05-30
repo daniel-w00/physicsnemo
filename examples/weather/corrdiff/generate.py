@@ -22,7 +22,10 @@ import hydra
 import netCDF4 as nc
 import numpy as np
 import nvtx
-import netCDF4 as nc
+import torch
+from torch.distributed import gather
+from hydra.utils import to_absolute_path
+from omegaconf import DictConfig, OmegaConf
 from physicsnemo.distributed import DistributedManager
 from physicsnemo.launch.logging import PythonLogger, RankZeroLoggingWrapper
 from physicsnemo.experimental.models.diffusion.preconditioning import (
@@ -42,8 +45,8 @@ from helpers.generate_helpers import (
     get_dataset_and_sampler,
     save_images,
 )
-from physicsnemo.utils.logging import PythonLogger, RankZeroLoggingWrapper
-
+from helpers.train_helpers import set_patch_shape
+from datasets.dataset import register_dataset
 
 @hydra.main(version_base="1.2", config_path="conf", config_name="config_generate")
 def main(cfg: DictConfig) -> None:
