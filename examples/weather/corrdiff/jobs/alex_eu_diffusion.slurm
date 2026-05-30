@@ -1,5 +1,5 @@
 #!/bin/bash -l
-#SBATCH -J reg_eu_pure_v1
+#SBATCH -J diff_eu_v1
 #SBATCH --ntasks=1
 #SBATCH --time=23:00:00
 #SBATCH --gres=gpu:a100:4
@@ -7,7 +7,6 @@
 #SBATCH --output=output/alex/jobout/job-%j.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user "daniel.wilhelm@stud-mail.uni-wuerzburg.de"
-#SBATCH --constraint=el9   # newer base OS variant (works on both 40 GB and 80 GB a100 nodes)
 
 # --- GPU config: set to 1, 2 or 4 ---
 NUM_GPUS=4
@@ -26,8 +25,8 @@ source $HOME/.job_secrets
 # absolute path inside the container matches the path in the config.
 EUROPA_WS=/anvme/workspace/b214cb18-ws-daniel2
 
-# Europa-dedicated checkpoint root (separate from taiwan/).
-# Container sees this as /checkpoints/europa/reg_eu_pure_v1/...
+# Europa diffusion checkpoint root (separate from regression).
+# Container sees this as /checkpoints/europa/diff_eu_v1/...
 mkdir -p $WORK/checkpoints/europa
 
 export HYDRA_FULL_ERROR=1
@@ -47,4 +46,4 @@ apptainer run --nv \
     $CONTAINER \
     torchrun --nproc_per_node=$NUM_GPUS --master_port=$MASTER_PORT \
         $HOME/corrdiff/train.py \
-        --config-name config_training_europa_regression-alex
+        --config-name config_training_eu_diffusion-alex

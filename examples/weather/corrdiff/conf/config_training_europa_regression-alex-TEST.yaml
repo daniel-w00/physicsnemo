@@ -1,0 +1,54 @@
+# Test config: same as config_training_europa_regression-alex.yaml but with:
+#   - short training_duration (verifies compile + DDP changes fail fast if broken)
+#   - separate checkpoint_dir (avoids stomping on the real run's checkpoints)
+#   - wandb tag to mark it as a test in the dashboard
+# Delete this file after the test job verifies the new code.
+
+hydra:
+    job:
+          chdir: false
+          name: europa_regression_TEST
+    run:
+          dir: ./output/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+defaults:
+    - dataset: europa
+    - model: regression
+    - model_size: normal
+    - training: ${model}
+    - val_times_2021@_val_times
+
+dataset:
+    data_path: /anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr
+
+training:
+    hp:
+        training_duration: 200_000          # short: ~30 min incl. compile
+        lr_rampup: 10_000
+        total_batch_size: 256
+        batch_size_per_gpu: 4               # back to 4 — bs=8 gave no speedup; checking fit on 40 GB GPU now
+    io:
+      print_progress_freq: 4000
+      save_n_recent_checkpoints: 2
+      checkpoint_dir: /checkpoints/europa/reg_eu_TEST_compile  # separate dir
+      save_checkpoint_freq: 100_000
+    perf:
+      torch_compile: true
+
+validation:
+    train: false
+    all_times: false
+    include_times: ${_val_times.times}
+
+model:
+    embed: none
+    embed_version: v1
+
+wandb:
+    mode: online
+    results_dir: "./wandb"
+    watch_model: false
+    tags: ["test", "compile-verify"]   # mark as test in the dashboard
+    resume_id: null

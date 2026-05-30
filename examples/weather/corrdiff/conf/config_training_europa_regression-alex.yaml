@@ -31,16 +31,18 @@ dataset:
 # Training parameters
 training:
     hp:
-        training_duration: 1_000_000
+        training_duration: 2_000_000
         lr_rampup: 10_000
         total_batch_size: 256
         batch_size_per_gpu: 4
     io:
       print_progress_freq: 4000
-      save_n_recent_checkpoints: 5
+      save_n_recent_checkpoints: 15
       checkpoint_dir: /checkpoints/europa/reg_eu_pure_v1
       save_checkpoint_freq: 100_000
       # validate every 5000 samples (default from base_all.yaml)
+    perf:
+      torch_compile: true  # ~5 min Inductor compile at startup, then ~15-20% faster steps
 
 # Validation: use only the 256 curated 2021 timestamps.
 # get_zarr_dataset bypasses the year-2021 train/test split when
@@ -61,4 +63,4 @@ wandb:
     results_dir: "./wandb"
     watch_model: false
     tags: []                  # override on CLI: 'wandb.tags=[olmo,v1]'
-    resume_id: null           # set to existing wandb run id to resume logging
+    resume_id: xzl9vnzo       # resume the original production run (was started 2026-05-21)

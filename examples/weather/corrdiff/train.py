@@ -377,12 +377,23 @@ def main(cfg: DictConfig) -> None:
 
     # Enable distributed data parallel if applicable
     if dist.world_size > 1:
+        # === custom edit: select find_unused_parameters per model variant ===
+        # Upstream PhysicsNeMo hardcoded find_unused_parameters=True as a defensive
+        # default that works for every corrdiff model. Combined with static_graph=True
+        # this adds ~1-5% per-iter overhead for variants that don't need it.
+        # Variants with conditional / per-iteration graph behavior that REQUIRE True:
+        #   - lt_aware_ce_regression (prob_channels masks outputs)
+        #   - patched_diffusion, lt_aware_patched_diffusion (per-iter patch counts)
+        # Variants with a fully static graph (safe with False):
+        #   - regression, diffusion (verified)
+        # Other variants default to True to stay safe.
+        ddp_needs_find_unused = cfg.model.name not in {"regression", "diffusion"}
         model = DistributedDataParallel(
             model,
             device_ids=[dist.local_rank],
             broadcast_buffers=True,
             output_device=dist.device,
-            find_unused_parameters=True,  # dist.find_unused_parameters,
+            find_unused_parameters=ddp_needs_find_unused,
             bucket_cap_mb=35,
             gradient_as_bucket_view=True,
             static_graph=True,
@@ -690,6 +701,11 @@ def main(cfg: DictConfig) -> None:
                             model,
                             grad_clip_threshold=cfg.training.hp.grad_clip_threshold,
                         )
+                        # === custom edit: capture total grad L2 norm for wandb logging ===
+                        # clip_grad_norm_ with inf threshold computes the norm without clipping.
+                        grad_norm = torch.nn.utils.clip_grad_norm_(
+                            model.parameters(), float("inf")
+                        ).item()
                     with nvtx.annotate("optimizer step", color="blue"):
                         optimizer.step()
 
@@ -700,6 +716,8 @@ def main(cfg: DictConfig) -> None:
                     # Validation
                     if validation_dataset_iterator is not None:
                         valid_loss_accum = 0
+                        # === custom edit: per-channel validation loss accumulator (lazy init) ===
+                        valid_per_ch_accum = None
                         if is_time_for_periodic_task(
                             cur_nimg,
                             cfg.training.io.validation_freq,
@@ -739,8 +757,15 @@ def main(cfg: DictConfig) -> None:
                                             .contiguous()
                                         )
 
+                                    # === custom edit: use uncompiled model for validation ===
+                                    # torch.compile recompiles whenever grad_mode toggles
+                                    # (no_grad in val flips it), which can hang for minutes
+                                    # per validation. _orig_mod is the DDP-wrapped UNet
+                                    # without the compile layer; getattr falls back to model
+                                    # when compile is disabled (no _orig_mod attribute).
+                                    eval_net = getattr(model, "_orig_mod", model)
                                     loss_valid_kwargs = {
-                                        "net": model,
+                                        "net": eval_net,
                                         "img_clean": img_clean_valid,
                                         "img_lr": img_lr_valid,
                                         "augment_pipe": None,
@@ -772,6 +797,17 @@ def main(cfg: DictConfig) -> None:
                                         ):
                                             loss_valid = loss_fn(**loss_valid_kwargs)
 
+                                        # === custom edit: capture per-channel mean before reduction ===
+                                        # Expected shape (B, C, H, W); skip silently if shape unexpected.
+                                        if loss_valid.ndim == 4:
+                                            per_ch = loss_valid.detach().mean(dim=(0, 2, 3))
+                                            if valid_per_ch_accum is None:
+                                                valid_per_ch_accum = torch.zeros_like(per_ch)
+                                            valid_per_ch_accum += per_ch / (
+                                                cfg.training.io.validation_steps
+                                                * len(patch_nums_iter)
+                                            )
+
                                         loss_valid = (
                                             (loss_valid.sum() / batch_size_per_gpu)
                                             .cpu()
@@ -792,18 +828,32 @@ def main(cfg: DictConfig) -> None:
                                         op=torch.distributed.ReduceOp.SUM,
                                     )
                                 average_valid_loss = valid_loss_sum / dist.world_size
+                                # === custom edit: all-reduce per-channel losses ===
+                                if valid_per_ch_accum is not None and dist.world_size > 1:
+                                    torch.distributed.all_reduce(
+                                        valid_per_ch_accum,
+                                        op=torch.distributed.ReduceOp.SUM,
+                                    )
+                                    valid_per_ch_accum = valid_per_ch_accum / dist.world_size
                                 if dist.rank == 0:
                                     writer.add_scalar(
                                         "validation_loss", average_valid_loss, cur_nimg
                                     )
 
                                     ##slebst hinzugefügt
-                                    wandb.log({
+                                    wandb_log_dict = {
                                         "validation_loss": average_valid_loss,
                                         "learning_rate": current_lr,
                                         "training_loss": average_loss,
                                         "training_loss_running_mean": average_loss_running_mean
-                                    }, step=cur_nimg)
+                                    }
+                                    # === custom edit: per-channel val loss to wandb ===
+                                    if valid_per_ch_accum is not None:
+                                        for i, ch in enumerate(dataset.output_channels()):
+                                            wandb_log_dict[f"val/loss_{ch.name}"] = (
+                                                valid_per_ch_accum[i].item()
+                                            )
+                                    wandb.log(wandb_log_dict, step=cur_nimg)
 
                 if is_time_for_periodic_task(
                     cur_nimg,
@@ -832,20 +882,27 @@ def main(cfg: DictConfig) -> None:
                     fields += [
                         f"cpu_mem_gb {(psutil.Process(os.getpid()).memory_info().rss / 2**30):<6.2f}"
                     ]
+                    peak_mem_gb = None
                     if torch.cuda.is_available():
-                        fields += [
-                            f"peak_gpu_mem_gb {(torch.cuda.max_memory_allocated(dist.device) / 2**30):<6.2f}"
-                        ]
+                        # === custom edit: capture peak mem BEFORE reset so we can also log to wandb ===
+                        peak_mem_gb = torch.cuda.max_memory_allocated(dist.device) / 2**30
+                        fields += [f"peak_gpu_mem_gb {peak_mem_gb:<6.2f}"]
                         fields += [
                             f"peak_gpu_mem_reserved_gb {(torch.cuda.max_memory_reserved(dist.device) / 2**30):<6.2f}"
                         ]
                         torch.cuda.reset_peak_memory_stats()
                     logger0.info(" ".join(fields))
 
-                    wandb.log({
+                    # === custom edit: mirror perf metrics to wandb (values already computed above) ===
+                    perf_log = {
                         "training_loss": average_loss,
                         "learning_rate": current_lr,
-                    })
+                        "perf/samples_per_sec": (cur_nimg - tick_start_nimg) / max(tick_end_time - tick_start_time, 1e-6),
+                        "perf/grad_norm": grad_norm,
+                    }
+                    if peak_mem_gb is not None:
+                        perf_log["perf/peak_gpu_mem_gb"] = peak_mem_gb
+                    wandb.log(perf_log, step=cur_nimg)
 
                     # reset running mean of average loss after logging
                     average_loss_running_mean = 0
