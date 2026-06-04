@@ -36,5 +36,21 @@ max_path: null
 global_means_path: null
 # Path to global stds of the data
 global_stds_path: null
-# Path to AlphaEarth embedding zarr (optional; if set, adds 64 static embedding channels)
+# --- Satellite earth embeddings (Alpha Earth / OLMO) -------------------------
+# Embeddings are appended to the model input as extra channels. Two ways to
+# select them (see datasets/cwb.py); a banner is always logged saying ON/OFF.
+#
+# PRIMARY — single file (the simple single-year path). Give one zarr file and it
+# is appended to every sample; channel count is read from the file. Works for
+# both new (`embedding` key) and legacy (`alpha_earth` key) stores. Takes
+# precedence over the registry below. null = embeddings OFF.
 embedding_path: null
+#
+# OPTIONAL — dormant per-year registry (multi-year). Only used when embedding_path
+# is null AND embedding_source != none; builds paths under <root>/<source>/zarr/.
+embedding_source: none         # none | alpha | olmo   (none = registry off)
+embedding_version: v2_year     # v1_static (single fixed year) | v2_year (year-matched)
+embedding_n: 1                 # 1 | 8   (start with 1: one embedding pixel per weather pixel)
+embedding_region: taiwan       # taiwan | europa   (europa.yaml overrides to europa)
+embedding_root: null           # regrid root; set explicitly in each run config that enables the registry
+embedding_static_year: 2024    # only used when embedding_version: v1_static

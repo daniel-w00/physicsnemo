@@ -1,0 +1,63 @@
+# SPDX-FileCopyrightText: Copyright (c) 2023 - 2025 NVIDIA CORPORATION & AFFILIATES.
+# SPDX-FileCopyrightText: All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Generation for the plain-concat YEAR-MATCHED Alpha Earth regression
+# (v2_year_concat). Regression-only (no diffusion model trained for alpha yet).
+# The dataset resolves each requested timestamp's year and loads the matching
+# embedding automatically — no generate.py change needed. See alpha-integrate.md.
+
+hydra:
+    job:
+          chdir: false
+          name: generate_taiwan_alpha_v2_year_concat
+    run:
+          dir: ./outputs/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+defaults:
+    - dataset: cwb
+    - generation: non_patched
+    - test_times_2021@_test_times
+    # Held-out 256 test timestamps + 10 forced typhoon events (conf/test_times_2021.yaml).
+    # Disjoint from val_times_2021 used during training -> unbiased eval set.
+
+# Year-matched Alpha Earth embeddings (registry resolves region/channels).
+dataset:
+    data_path: /data/cwa_dataset.zarr
+    train: False
+    all_times: True
+    embedding_source: alpha
+    embedding_version: v2_year
+    embedding_root: /home/vault/b214cb/b214cb18/regrid2
+
+# Generation parameters
+generation:
+    num_ensembles: 1
+    seed_batch_size: 1
+    hr_mean_conditioning: false
+    times_range: null
+    times: ${_test_times.times}
+    save_input: true
+    inference_mode: regression   # only a regression checkpoint exists for alpha
+    io:
+        reg_ckpt_filename: /checkpoints/taiwan/alpha-v2_year_concat/checkpoints_regression/UNet.0.2000128.mdlus
+        output_filename: "/home/vault/b214cb/b214cb18/generated/taiwan_alpha-v2_year_concat-reg-test2021.nc"
+
+# wandb not needed for generation
+wandb:
+    mode: offline
+    results_dir: "./wandb"

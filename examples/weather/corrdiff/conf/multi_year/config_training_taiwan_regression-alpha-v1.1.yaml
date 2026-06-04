@@ -1,0 +1,80 @@
+# SPDX-FileCopyrightText: Copyright (c) 2023 - 2025 NVIDIA CORPORATION & AFFILIATES.
+# SPDX-FileCopyrightText: All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Taiwan regression with YEAR-MATCHED Alpha Earth embeddings (plain concat).
+# "v2_year_concat": embeddings concatenated directly to the ERA5 input of the
+# regression UNet, with each sample seeing the embedding of its OWN year
+# (dataset.embedding_version: v2_year). (Filename keeps the historical -v1.1 tag.)
+
+hydra:
+    job:
+          chdir: false
+          name: taiwan_regression_alpha_v2_year_concat
+    run:
+          dir: ./output/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+defaults:
+    - dataset: cwb
+    - model: regression
+    - model_size: normal
+    - training: ${model}
+    - val_times_2021@_val_times
+
+# Year-matched Alpha Earth embeddings (registry resolves region/channels).
+dataset:
+    data_path: /data/cwa_dataset.zarr
+    # Pin the 4 cwb output channels explicitly (matches base cwb.yaml default).
+    out_channels: [0, 1, 2, 3]
+    embedding_source: alpha
+    embedding_version: v2_year
+    embedding_root: /home/vault/b214cb/b214cb18/regrid2
+
+# Training parameters
+training:
+    hp:
+        training_duration: 2_000_000
+        lr_rampup: 10_000
+        total_batch_size: 256
+        batch_size_per_gpu: 4
+    io:
+      print_progress_freq: 4000
+      save_n_recent_checkpoints: 15
+      checkpoint_dir: /checkpoints/taiwan/alpha-v2_year_concat
+      save_checkpoint_freq: 100_000
+    perf:
+      torch_compile: true   # ~5 min Inductor compile at startup, then ~15-20% faster steps
+
+validation:
+    train: false
+    all_times: false
+    include_times: ${_val_times.times}
+
+# Model meta — ONLY used to build the wandb run name (train.py:135). It does not
+# affect the model or data. Kept numerically consistent with the functional
+# dataset.embedding_version (v2_year); the suffix marks the architecture.
+model:
+    embed: alpha                  # none | alpha | olmo
+    embed_version: v2_year_concat  # year-matched (v2_year) + plain concat into the UNet input
+
+# Parameters for wandb logging
+wandb:
+    mode: online
+    results_dir: "./wandb"
+    watch_model: false
+    resume_id: null
+    tags: [alpha, v2_year, concat]   # override on CLI: 'wandb.tags=[...]'

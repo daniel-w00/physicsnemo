@@ -1,0 +1,63 @@
+# Europa regression with YEAR-MATCHED Alpha Earth embeddings (plain concat).
+# "v2_year_concat": the 64 alpha channels are appended directly to the ERA5
+# input of the regression UNet, with each sample seeing the embedding of its
+# OWN year (dataset.embedding_version: v2_year).
+
+hydra:
+    job:
+          chdir: false
+          name: europa_regression_alpha_concat
+    run:
+          dir: ./output/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base
+
+defaults:
+    - dataset: europa
+    # Europa-specific channel layout (12 era5, precip at cwb index 3) +
+    # embedding_region: europa (resolves gcs_eu_* embedding files).
+
+    - model: regression
+    - model_size: normal
+    - training: ${model}
+
+    - val_times_2021@_val_times
+
+# Dataset overrides (Alex paths + year-matched Alpha embeddings).
+dataset:
+    data_path: /anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr
+    embedding_source: alpha
+    embedding_version: v2_year
+    embedding_root: /home/vault/b214cb/b214cb18/regrid2
+
+# Training parameters (mirror the no-embedding Europa baseline so A/B is clean).
+training:
+    hp:
+        training_duration: 2_000_000
+        lr_rampup: 10_000
+        total_batch_size: 256
+        batch_size_per_gpu: 4
+    io:
+      print_progress_freq: 4000
+      save_n_recent_checkpoints: 15
+      checkpoint_dir: /checkpoints/europa/reg_eu_alpha_v2_year_concat
+      save_checkpoint_freq: 100_000
+    perf:
+      torch_compile: true
+
+validation:
+    train: false
+    all_times: false
+    include_times: ${_val_times.times}
+
+# Model meta — only surfaced to wandb (train.py:135); no model effect.
+model:
+    embed: alpha
+    embed_version: v2_year_concat
+
+wandb:
+    mode: online
+    results_dir: "./wandb"
+    watch_model: false
+    tags: [alpha, v2_year, concat, europa]
+    resume_id: null

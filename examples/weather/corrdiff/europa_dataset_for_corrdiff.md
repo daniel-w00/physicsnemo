@@ -113,7 +113,7 @@ at cwb index 3) are absorbed entirely through three config-level knobs.
 
 | File | Purpose |
 |---|---|
-| [`conf/base/dataset/europa.yaml`](conf/base/dataset/europa.yaml) | Europa dataset config. `type: cwb` (reuses the CWA loader), `in_channels: [0..11]`, `out_channels: [0,1,2,3]`, `embedding_path: null`. |
+| [`conf/base/dataset/europa.yaml`](conf/base/dataset/europa.yaml) | Europa dataset config. `type: cwb` (reuses the CWA loader), `in_channels: [0..11]`, `out_channels: [0,1,2,3]`, earth embeddings off (`embedding_source: none`, `embedding_region: europa`; see [alpha-integrate.md](alpha-integrate.md)). |
 | [`conf/config_training_europa_regression-alex.yaml`](conf/config_training_europa_regression-alex.yaml) | Top-level Hydra config. Pulls `dataset: europa`, `model: regression`, hooks `val_times_2021.yaml` into the validation split. `checkpoint_dir: /checkpoints/europa/reg_eu_pure_v1`. |
 | [`jobs/alex/europa_regression.slurm`](jobs/alex/europa_regression.slurm) | Alex SLURM script. A100-80 GB, binds `/anvme/workspace/b214cb18-ws-daniel2` 1:1, uses the zarr-v3 container. |
 

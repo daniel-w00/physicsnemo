@@ -17,6 +17,7 @@
 """Streaming images and labels from datasets created with dataset_tool.py."""
 
 import logging
+import os
 import random
 
 import cftime
@@ -31,6 +32,61 @@ from datasets.img_utils import reshape_fields
 from datasets.norm import denormalize, normalize
 
 logger = logging.getLogger(__file__)
+
+
+# --- Earth-embedding registry ------------------------------------------------
+# Regridded satellite embeddings live under <root>/<source>/zarr/ as one static
+# annual store per year, on the exact CWA/Europa target grid. Stores are zarr v3
+# with an `embedding` array of shape (C, 450, 450). The registry maps a source
+# to its filename prefix and channel count; the region maps to a filename token.
+_EMB_SOURCES = {  # source -> (filename prefix, channel count)
+    "alpha": ("gcs", 64),
+    "olmo": ("olmo", 128),
+}
+_EMB_REGION_TOKEN = {"taiwan": "", "europa": "eu"}
+# Array keys tried inside an embedding store, in order. Current per-year stores
+# use `embedding`; legacy AlphaEarth stores (e.g. 2024-conservative.zarr) used
+# `alpha_earth`. The store root may also be the array itself.
+_EMB_ARRAY_KEYS = ("embedding", "alpha_earth")
+
+
+def _emb_banner(*lines):
+    """Log a boxed status banner so the job log makes it unmistakable whether
+    (and which) embeddings are active — embeddings must never be silently on/off."""
+    bar = "=" * 64
+    logger.info(bar)
+    for line in lines:
+        logger.info(line)
+    logger.info(bar)
+
+
+def _emb_store_path(root, source, region, year, n):
+    """Build the path to a per-year embedding store, e.g. gcs_2020_N1.zarr."""
+    prefix, _ = _EMB_SOURCES[source]
+    tok = _EMB_REGION_TOKEN[region]
+    name = f"{prefix}{'_' + tok if tok else ''}_{year}_N{n}.zarr"
+    return os.path.join(root, source, "zarr", name)
+
+
+def _load_embedding_store(path, img_shape_y, img_shape_x):
+    """Open an embedding zarr store, fill NaNs with 0, crop to the model grid,
+    and return a float32 tensor of shape (C, img_shape_y, img_shape_x).
+
+    Accepts both the current per-year stores (array key ``embedding``) and legacy
+    AlphaEarth stores (array key ``alpha_earth``, or an array at the store root)."""
+    store = zarr.open(path, mode="r")
+    if hasattr(store, "shape"):  # opened object is an Array, not a Group
+        arr = store
+    else:
+        arr = next((store[k] for k in _EMB_ARRAY_KEYS if k in store), None)
+        if arr is None:
+            raise KeyError(
+                f"No embedding array found in {path}; tried keys {_EMB_ARRAY_KEYS}."
+            )
+    emb = arr[:]  # (C, 450, 450), float32
+    emb = np.where(np.isnan(emb), 0.0, emb)
+    emb = emb[:, :img_shape_y, :img_shape_x].astype(np.float32)
+    return torch.as_tensor(emb)
 
 
 def get_target_normalizations_v1(group):
@@ -480,6 +536,12 @@ class ZarrDataset(DownscalingDataset):
         global_stds_path=None,
         normalization="v1",
         embedding_path=None,
+        embedding_source="none",
+        embedding_version="v2_year",
+        embedding_n=1,
+        embedding_region="taiwan",
+        embedding_root=None,
+        embedding_static_year=2024,
     ):
         if not all_times:
             self._dataset = (
@@ -513,16 +575,112 @@ class ZarrDataset(DownscalingDataset):
         )
         self.normalization = normalization
 
-        # Load AlphaEarth static embeddings if provided
-        self.alpha_earth_emb = None
+        # Load satellite (Alpha Earth / OLMO) embeddings, appended to the model
+        # input as extra channels (see __getitem__). The integration style
+        # (concat vs emb_branch) is a model-config choice, independent of this
+        # loader. There are two ways to select embeddings, in precedence order:
+        #
+        #   1. embedding_path  -> DIRECT single-file mode (the simple default):
+        #      give one zarr file; it is appended to *every* sample (static, all
+        #      years). Channel count is read from the file. Revives pre-registry
+        #      configs and is the single-year path. Wins over the registry.
+        #   2. embedding_source -> the per-year REGISTRY (dormant multi-year option):
+        #      embedding_source (none|alpha|olmo) + embedding_version
+        #      (v1_static | v2_year) + embedding_root/region/n build the path(s).
+        #
+        # A banner is always logged so the job output makes it unmistakable
+        # whether embeddings are active — they are never silently on/off, and a
+        # configured-but-missing file is a hard error, never a silent skip.
+        self.embedding_source = embedding_source
+        self.embedding_version = embedding_version
+        self.embedding_channels = 0
+        self._emb_label = None  # channel-metadata name prefix (set per mode)
+        self._year_emb = None  # dict[year -> (C, H, W) tensor] for v2_year
+        self._static_emb = None  # (C, H, W) tensor for v1_static / direct path
+
         if embedding_path is not None:
-            emb_path = to_absolute_path(embedding_path)
-            emb_zarr = zarr.open(emb_path, mode="r")
-            emb = emb_zarr["alpha_earth"][:]  # (64, 450, 450), float32
-            emb = np.where(np.isnan(emb), 0.0, emb)
-            emb = emb[:, :img_shape_y, :img_shape_x].astype(np.float32)  # (64, 448, 448)
-            self.alpha_earth_emb = torch.as_tensor(emb)
-            logger.info("Loaded AlphaEarth embeddings: shape %s", self.alpha_earth_emb.shape)
+            # DIRECT single-file mode. Channels named `alpha_earth_*` to stay
+            # compatible with checkpoints trained via the old embedding_path knob.
+            if embedding_source != "none":
+                logger.warning(
+                    "Both dataset.embedding_path and dataset.embedding_source are "
+                    "set; embedding_path wins, ignoring embedding_source=%s.",
+                    embedding_source,
+                )
+            path = to_absolute_path(embedding_path)
+            if not os.path.exists(path):
+                raise FileNotFoundError(
+                    f"dataset.embedding_path is set but does not exist: {path}"
+                )
+            self._static_emb = _load_embedding_store(path, img_shape_y, img_shape_x)
+            self.embedding_channels = int(self._static_emb.shape[0])
+            self._emb_label = "alpha_earth"
+            _emb_banner(
+                "EMBEDDINGS: ON  (single file, static for all samples)",
+                f"  path     : {path}",
+                f"  channels : {self.embedding_channels}  (read from file)",
+                f"  grid     : {tuple(self._static_emb.shape)}",
+            )
+        elif embedding_source == "none":
+            _emb_banner(
+                "EMBEDDINGS: OFF  (embedding_path unset, embedding_source=none)",
+                "  model input = weather channels only (no satellite embeddings)",
+            )
+        else:
+            # REGISTRY mode (dormant multi-year option).
+            if embedding_source not in _EMB_SOURCES:
+                raise ValueError(
+                    f"Unknown embedding_source '{embedding_source}'; "
+                    f"expected one of {list(_EMB_SOURCES)} or 'none'"
+                )
+            if embedding_root is None:
+                raise ValueError(
+                    "embedding_source is set but dataset.embedding_root is None; "
+                    "specify the regrid root in your run config "
+                    "(e.g. embedding_root: /home/vault/<group>/<user>/regrid2)"
+                )
+            self.embedding_channels = _EMB_SOURCES[embedding_source][1]
+            self._emb_label = f"{embedding_source}_emb"
+
+            def _path(year):
+                return _emb_store_path(
+                    embedding_root, embedding_source, embedding_region, year, embedding_n
+                )
+
+            if embedding_version == "v2_year":
+                self._sample_years = [t.year for t in self._dataset.time()]
+                self._year_emb = {}
+                for year in sorted(set(self._sample_years)):
+                    path = _path(year)
+                    if not os.path.exists(path):
+                        raise FileNotFoundError(
+                            f"Year-matched embedding store missing for year {year}: {path}"
+                        )
+                    self._year_emb[year] = _load_embedding_store(
+                        path, img_shape_y, img_shape_x
+                    )
+                _emb_banner(
+                    f"EMBEDDINGS: ON  ({embedding_source}, year-matched / v2_year)",
+                    f"  channels : {self.embedding_channels}",
+                    f"  years    : {sorted(self._year_emb)}",
+                    f"  root     : {embedding_root}",
+                )
+            elif embedding_version == "v1_static":
+                path = _path(embedding_static_year)
+                if not os.path.exists(path):
+                    raise FileNotFoundError(f"Static embedding store missing: {path}")
+                self._static_emb = _load_embedding_store(path, img_shape_y, img_shape_x)
+                _emb_banner(
+                    f"EMBEDDINGS: ON  ({embedding_source}, static / v1_static)",
+                    f"  channels : {self.embedding_channels}",
+                    f"  year     : {embedding_static_year}  (same field for all samples)",
+                    f"  path     : {path}",
+                )
+            else:
+                raise ValueError(
+                    f"Unknown embedding_version '{embedding_version}'; "
+                    f"expected 'v1_static' or 'v2_year'"
+                )
 
     def info(self):
         """Check if the given time is not in the year 2021."""
@@ -570,8 +728,10 @@ class ZarrDataset(DownscalingDataset):
             target, "tar", *reshape_args, normalize=False
         )  # 3x720x1440
 
-        if self.alpha_earth_emb is not None:
-            input = torch.cat([input, self.alpha_earth_emb], dim=0)
+        if self._year_emb is not None:
+            input = torch.cat([input, self._year_emb[self._sample_years[idx]]], dim=0)
+        elif self._static_emb is not None:
+            input = torch.cat([input, self._static_emb], dim=0)
 
         return target, input
 
@@ -579,8 +739,11 @@ class ZarrDataset(DownscalingDataset):
         """Metadata for the input channels. A list of dictionaries, one for each channel"""
         in_channels = self._dataset.input_channels()
         in_channels = [in_channels[i] for i in self.in_channels]
-        if self.alpha_earth_emb is not None:
-            emb_channels = [ChannelMetadata(name=f"alpha_earth_{i}", level="") for i in range(64)]
+        if self.embedding_channels > 0:
+            emb_channels = [
+                ChannelMetadata(name=f"{self._emb_label}_{i}", level="")
+                for i in range(self.embedding_channels)
+            ]
             in_channels = in_channels + emb_channels
         return in_channels
 
@@ -654,12 +817,19 @@ class ZarrDataset(DownscalingDataset):
         return x
 
 
-def get_zarr_dataset(*, data_path, normalization="v1", all_times=False, embedding_path=None, include_times=None, **kwargs):
+def get_zarr_dataset(
+    *, data_path, normalization="v1", all_times=False, include_times=None,
+    embedding_path=None, **kwargs,
+):
     """Get a Zarr dataset for training or evaluation.
 
     If `include_times` is set (list of ISO 8601 strings, e.g. "2021-09-12T00:00:00"),
     the dataset is filtered to only those timestamps and the year-2021 split (is_2021 /
     is_not_2021) is bypassed.
+
+    `embedding_path` (when set) is the simple single-file embedding interface: that
+    one zarr file is appended to every sample. It takes precedence over the per-year
+    `embedding_source`/`embedding_version` registry (see ZarrDataset.__init__).
     """
     data_path = to_absolute_path(data_path)
     get_target_normalization = {

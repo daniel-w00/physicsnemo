@@ -39,8 +39,23 @@ max_path: null
 global_means_path: null
 global_stds_path: null
 
-# No AlphaEarth embeddings for Europa yet.
+# --- Satellite earth embeddings (Alpha Earth / OLMO) -------------------------
+# Off by default for Europa. See datasets/cwb.py; a banner always logs ON/OFF.
+#
+# PRIMARY — single file (simple single-year path). Give one zarr file; appended
+# to every sample, channel count read from the file. Takes precedence over the
+# registry below. null = embeddings OFF.
 embedding_path: null
+#
+# OPTIONAL — dormant per-year registry (multi-year). Only used when embedding_path
+# is null AND embedding_source != none; resolves the europa file token
+# (gcs_eu_* / olmo_eu_*) and channel count automatically.
+embedding_source: none         # none | alpha | olmo
+embedding_version: v2_year     # v1_static | v2_year
+embedding_n: 1                 # 1 | 8
+embedding_region: europa       # europa file token (gcs_eu_* / olmo_eu_*)
+embedding_root: null           # regrid root; set explicitly in each run config that enables the registry
+embedding_static_year: 2019    # used only when embedding_version: v1_static (2018/2019/2021 alpha-eu files exist)
 
 # Target normalization. See normalization_design.md for the analysis.
 #   v1         -> read empirical center/scale from the zarr (Gaussian-ish T2

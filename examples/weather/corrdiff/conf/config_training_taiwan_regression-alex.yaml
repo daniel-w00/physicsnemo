@@ -102,3 +102,5 @@ wandb:
     # Directory to store wandb results
     watch_model: false
     # If true, wandb will track model parameters and gradients
+    resume_id: null
+    # Set to a previous wandb run id to resume that run; null = start a new run
