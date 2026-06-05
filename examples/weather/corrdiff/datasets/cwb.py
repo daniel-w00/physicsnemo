@@ -60,17 +60,27 @@ def _emb_banner(*lines):
     logger.info(bar)
 
 
-def _emb_store_path(root, source, region, year, n):
-    """Build the path to a per-year embedding store, e.g. gcs_2020_N1.zarr."""
+def _emb_store_path(root, source, region, year, n, masked=False):
+    """Build the path to a per-year embedding store, e.g. gcs_2020_N1.zarr.
+
+    When ``masked`` is True the ``_masked`` variant is used, e.g.
+    ``olmo_2019_N8_masked.zarr`` (NaN over ocean/no-data, filled with 0 on load)."""
     prefix, _ = _EMB_SOURCES[source]
     tok = _EMB_REGION_TOKEN[region]
-    name = f"{prefix}{'_' + tok if tok else ''}_{year}_N{n}.zarr"
+    suffix = "_masked" if masked else ""
+    name = f"{prefix}{'_' + tok if tok else ''}_{year}_N{n}{suffix}.zarr"
     return os.path.join(root, source, "zarr", name)
 
 
-def _load_embedding_store(path, img_shape_y, img_shape_x):
+def _load_embedding_store(path, img_shape_y, img_shape_x, n=1):
     """Open an embedding zarr store, fill NaNs with 0, crop to the model grid,
-    and return a float32 tensor of shape (C, img_shape_y, img_shape_x).
+    and return a float32 tensor of shape (C, n*img_shape_y, n*img_shape_x).
+
+    ``n`` is the per-axis upsampling factor of the store relative to the weather
+    grid: N1 stores are (C, 450, 450) and crop to (C, 448, 448); N8 stores are
+    (C, 3600, 3600) and crop to (C, 3584, 3584) = (C, 8*448, 8*448). The extra
+    8x8 sub-pixels per weather cell are preserved (NOT averaged) so the model's
+    emb branch can learn the intra-cell variation via pixel_unshuffle.
 
     Accepts both the current per-year stores (array key ``embedding``) and legacy
     AlphaEarth stores (array key ``alpha_earth``, or an array at the store root)."""
@@ -83,9 +93,9 @@ def _load_embedding_store(path, img_shape_y, img_shape_x):
             raise KeyError(
                 f"No embedding array found in {path}; tried keys {_EMB_ARRAY_KEYS}."
             )
-    emb = arr[:]  # (C, 450, 450), float32
+    emb = arr[:]  # (C, n*450, n*450), float32
     emb = np.where(np.isnan(emb), 0.0, emb)
-    emb = emb[:, :img_shape_y, :img_shape_x].astype(np.float32)
+    emb = emb[:, : n * img_shape_y, : n * img_shape_x].astype(np.float32)
     return torch.as_tensor(emb)
 
 
@@ -542,6 +552,8 @@ class ZarrDataset(DownscalingDataset):
         embedding_region="taiwan",
         embedding_root=None,
         embedding_static_year=2024,
+        embedding_masked=False,
+        embedding_separate=None,
     ):
         if not all_times:
             self._dataset = (
@@ -594,6 +606,21 @@ class ZarrDataset(DownscalingDataset):
         self.embedding_source = embedding_source
         self.embedding_version = embedding_version
         self.embedding_channels = 0
+        self.embedding_n = embedding_n  # per-axis upsample factor (1=N1, 8=N8)
+        # When True the embedding is returned as a SEPARATE 3rd item from
+        # __getitem__ (target, input, embedding) instead of being concatenated
+        # onto `input`. Required for N8 (3600x3600) which cannot share the
+        # 448x448 weather grid; the emb-branch model receives it via an
+        # `embedding=` kwarg and reduces it with pixel_unshuffle. N1 keeps the
+        # legacy concat path unchanged.
+        #
+        # `embedding_n` is the single source of truth: by default the delivery
+        # mode is derived from it (n>1 cannot be concatenated, so it must be
+        # separate). Pass embedding_separate explicitly only for the rare case of
+        # delivering an N1 field as a separate tensor.
+        if embedding_separate is None:
+            embedding_separate = embedding_n > 1
+        self.embedding_separate = bool(embedding_separate)
         self._emb_label = None  # channel-metadata name prefix (set per mode)
         self._year_emb = None  # dict[year -> (C, H, W) tensor] for v2_year
         self._static_emb = None  # (C, H, W) tensor for v1_static / direct path
@@ -612,7 +639,9 @@ class ZarrDataset(DownscalingDataset):
                 raise FileNotFoundError(
                     f"dataset.embedding_path is set but does not exist: {path}"
                 )
-            self._static_emb = _load_embedding_store(path, img_shape_y, img_shape_x)
+            self._static_emb = _load_embedding_store(
+                path, img_shape_y, img_shape_x, n=embedding_n
+            )
             self.embedding_channels = int(self._static_emb.shape[0])
             self._emb_label = "alpha_earth"
             _emb_banner(
@@ -644,7 +673,12 @@ class ZarrDataset(DownscalingDataset):
 
             def _path(year):
                 return _emb_store_path(
-                    embedding_root, embedding_source, embedding_region, year, embedding_n
+                    embedding_root,
+                    embedding_source,
+                    embedding_region,
+                    year,
+                    embedding_n,
+                    masked=embedding_masked,
                 )
 
             if embedding_version == "v2_year":
@@ -657,11 +691,14 @@ class ZarrDataset(DownscalingDataset):
                             f"Year-matched embedding store missing for year {year}: {path}"
                         )
                     self._year_emb[year] = _load_embedding_store(
-                        path, img_shape_y, img_shape_x
+                        path, img_shape_y, img_shape_x, n=embedding_n
                     )
                 _emb_banner(
                     f"EMBEDDINGS: ON  ({embedding_source}, year-matched / v2_year)",
                     f"  channels : {self.embedding_channels}",
+                    f"  N factor : {embedding_n}  masked={embedding_masked}  "
+                    f"separate={self.embedding_separate}",
+                    f"  grid     : {tuple(next(iter(self._year_emb.values())).shape)}",
                     f"  years    : {sorted(self._year_emb)}",
                     f"  root     : {embedding_root}",
                 )
@@ -669,10 +706,14 @@ class ZarrDataset(DownscalingDataset):
                 path = _path(embedding_static_year)
                 if not os.path.exists(path):
                     raise FileNotFoundError(f"Static embedding store missing: {path}")
-                self._static_emb = _load_embedding_store(path, img_shape_y, img_shape_x)
+                self._static_emb = _load_embedding_store(
+                    path, img_shape_y, img_shape_x, n=embedding_n
+                )
                 _emb_banner(
                     f"EMBEDDINGS: ON  ({embedding_source}, static / v1_static)",
                     f"  channels : {self.embedding_channels}",
+                    f"  N factor : {embedding_n}  masked={embedding_masked}  "
+                    f"separate={self.embedding_separate}",
                     f"  year     : {embedding_static_year}  (same field for all samples)",
                     f"  path     : {path}",
                 )
@@ -728,18 +769,36 @@ class ZarrDataset(DownscalingDataset):
             target, "tar", *reshape_args, normalize=False
         )  # 3x720x1440
 
+        # Select this sample's embedding field (year-matched or static), if any.
+        emb = None
         if self._year_emb is not None:
-            input = torch.cat([input, self._year_emb[self._sample_years[idx]]], dim=0)
+            emb = self._year_emb[self._sample_years[idx]]
         elif self._static_emb is not None:
-            input = torch.cat([input, self._static_emb], dim=0)
+            emb = self._static_emb
+
+        if emb is not None:
+            if self.embedding_separate:
+                # SEPARATE path (e.g. N8): keep `input` weather-only and hand the
+                # embedding back as a 3rd item; the emb-branch model receives it
+                # via an `embedding=` kwarg (pixel_unshuffle front-end).
+                return target, input, emb
+            # LEGACY concat path (N1): append embedding as extra input channels;
+            # the model splits the trailing channels back off (unchanged).
+            input = torch.cat([input, emb], dim=0)
 
         return target, input
 
     def input_channels(self):
-        """Metadata for the input channels. A list of dictionaries, one for each channel"""
+        """Metadata for the input channels. A list of dictionaries, one for each channel.
+
+        In the legacy concat path the embedding rides inside ``input``, so its
+        channels are listed here (and counted into the model's input channels).
+        In ``embedding_separate`` mode the embedding is delivered as its own
+        tensor (and reduced inside the model's branch), so it is NOT part of the
+        weather input and must be excluded from this count."""
         in_channels = self._dataset.input_channels()
         in_channels = [in_channels[i] for i in self.in_channels]
-        if self.embedding_channels > 0:
+        if self.embedding_channels > 0 and not self.embedding_separate:
             emb_channels = [
                 ChannelMetadata(name=f"{self._emb_label}_{i}", level="")
                 for i in range(self.embedding_channels)

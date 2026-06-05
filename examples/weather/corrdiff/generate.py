@@ -47,6 +47,7 @@ from helpers.generate_helpers import (
 )
 from helpers.train_helpers import set_patch_shape
 from datasets.dataset import register_dataset
+from losses.emb_branch_losses import _EmbInjector
 
 @hydra.main(version_base="1.2", config_path="conf", config_name="config_generate")
 def main(cfg: DictConfig) -> None:
@@ -100,6 +101,11 @@ def main(cfg: DictConfig) -> None:
     )
     img_shape = dataset.image_shape()
     img_out_channels = len(dataset.output_channels())
+
+    # When the dataset returns the satellite embedding as a SEPARATE tensor (N8
+    # path) it is threaded to the model via an `embedding=` kwarg, injected into
+    # the regression/diffusion net calls below (see _EmbInjector).
+    emb_separate = bool(getattr(dataset, "embedding_separate", False))
 
     # Parse the patch shape
     if cfg.generation.patching:
@@ -249,10 +255,26 @@ def main(cfg: DictConfig) -> None:
             # (1, C, H, W)
             img_lr = image_lr.to(memory_format=torch.channels_last)
 
+            # In the separate-embedding (N8) path, wrap the nets so the embedding
+            # is injected as an `embedding=` kwarg into every forward call. The
+            # diffusion net sees the embedding expanded to the seed batch.
+            reg_net, res_net = net_reg, net_res
+            if emb_separate and image_embedding is not None:
+                emb = image_embedding.to(memory_format=torch.channels_last)
+                if net_reg is not None:
+                    reg_net = _EmbInjector(net_reg, emb)
+                if net_res is not None:
+                    res_net = _EmbInjector(
+                        net_res,
+                        emb.expand(cfg.generation.seed_batch_size, -1, -1, -1).to(
+                            memory_format=torch.channels_last
+                        ),
+                    )
+
             if net_reg:
                 with nvtx.annotate("regression_model", color="yellow"):
                     image_reg = regression_step(
-                        net=net_reg,
+                        net=reg_net,
                         img_lr=img_lr,
                         latents_shape=(
                             sum(map(len, rank_batches)),
@@ -269,7 +291,7 @@ def main(cfg: DictConfig) -> None:
                     mean_hr = None
                 with nvtx.annotate("diffusion model", color="purple"):
                     image_res = diffusion_step(
-                        net=net_res,
+                        net=res_net,
                         sampler_fn=sampler_fn,
                         img_shape=img_shape,
                         img_out_channels=img_out_channels,
@@ -390,10 +412,15 @@ def main(cfg: DictConfig) -> None:
                 start = end = DummyEvent()
 
             times = dataset.time()
-            for dataset_index, (image_tar, image_lr, *lead_time_label) in zip(
+            for dataset_index, batch in zip(
                 sampler,
                 iter(data_loader),
             ):
+                if emb_separate:
+                    image_tar, image_lr, image_embedding, *lead_time_label = batch
+                else:
+                    image_tar, image_lr, *lead_time_label = batch
+                    image_embedding = None
                 time_index += 1
                 if dist.rank == 0:
                     logger0.info(f"starting index: {time_index}")
@@ -406,6 +433,10 @@ def main(cfg: DictConfig) -> None:
                     lead_time_label = lead_time_label[0].to(dist.device).contiguous()
                 else:
                     lead_time_label = None
+                if image_embedding is not None:
+                    image_embedding = image_embedding.to(device=device).to(
+                        torch.float32
+                    )
                 image_lr = (
                     image_lr.to(device=device)
                     .to(torch.float32)

@@ -50,7 +50,14 @@ embedding_path: null
 # is null AND embedding_source != none; builds paths under <root>/<source>/zarr/.
 embedding_source: none         # none | alpha | olmo   (none = registry off)
 embedding_version: v2_year     # v1_static (single fixed year) | v2_year (year-matched)
-embedding_n: 1                 # 1 | 8   (start with 1: one embedding pixel per weather pixel)
+embedding_n: 1                 # 1 | 8   (1 = one embedding pixel per weather pixel; 8 = N8, 8x8 sub-pixels per cell)
 embedding_region: taiwan       # taiwan | europa   (europa.yaml overrides to europa)
 embedding_root: null           # regrid root; set explicitly in each run config that enables the registry
 embedding_static_year: 2024    # only used when embedding_version: v1_static
+embedding_masked: false        # use the *_masked store variant (e.g. olmo_2019_N8_masked.zarr; NaN->0 on load)
+# Delivery mode. null = AUTO-derive from embedding_n (the single source of truth):
+# n>1 (e.g. N8) cannot share the 448x448 weather grid, so it is delivered as a
+# SEPARATE tensor and the emb-branch model reduces it with pixel_unshuffle(n);
+# n==1 keeps the legacy concat path. Set true/false only to force the rare case of
+# delivering an N1 field as a separate tensor.
+embedding_separate: null       # null = auto (n>1 -> separate) | true | false

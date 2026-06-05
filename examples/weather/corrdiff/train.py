@@ -35,6 +35,7 @@ from physicsnemo.models.diffusion import UNet, EDMPrecondSuperResolution
 # Register local model extensions into physicsnemo so the UNet wrapper can resolve them
 import physicsnemo.models.diffusion as _diffusion_module
 from models.song_unet_emb_branch import SongUNetEmbBranch as _SongUNetEmbBranch
+from losses.emb_branch_losses import EmbRegressionLoss, EmbResidualLoss
 _diffusion_module.SongUNetEmbBranch = _SongUNetEmbBranch
 UNet._wrapped_classes = UNet._wrapped_classes | {"SongUNetEmbBranch"}
 from physicsnemo.distributed import DistributedManager
@@ -218,6 +219,17 @@ def main(cfg: DictConfig) -> None:
         sampler_start_idx=cur_nimg,
     )
 
+    # Whether the dataset hands the satellite embedding back as a SEPARATE tensor
+    # (N8 path) rather than concatenated onto `img_lr` (N1 path). When True the
+    # embedding is threaded through to the model via an `embedding=` kwarg, which
+    # requires the embedding-aware loss wrappers (EmbRegressionLoss/EmbResidualLoss).
+    emb_separate = bool(getattr(dataset, "embedding_separate", False))
+    if emb_separate:
+        logger0.info(
+            "Embeddings are SEPARATE (embedding_separate=True): threading a "
+            "dedicated embedding tensor to the model; using emb-aware loss wrappers."
+        )
+
     # Parse image configuration & update model args
     dataset_channels = len(dataset.input_channels())
     img_in_channels = dataset_channels
@@ -230,6 +242,8 @@ def main(cfg: DictConfig) -> None:
     distribution = getattr(cfg.training.hp, "distribution", None)
     student_t_nu = getattr(cfg.training.hp, "student_t_nu", None)
     residual_loss, edm_precond_super_res = ResidualLoss, EDMPrecondSuperResolution
+    if emb_separate:
+        residual_loss = EmbResidualLoss
     if distribution is not None and cfg.model.name not in [
         "diffusion",
         "patched_diffusion",
@@ -314,6 +328,20 @@ def main(cfg: DictConfig) -> None:
         model_args["prob_channels"] = prob_channels
     if hasattr(cfg.model, "model_args"):  # override defaults from config file
         model_args.update(OmegaConf.to_container(cfg.model.model_args))
+
+    # For the emb-branch model, the embedding geometry is fully determined by the
+    # dataset's `embedding_n` (single source of truth): n folds n*n sub-pixels into
+    # channels (emb_downscale_factor) and n>1 forces the separate-tensor delivery.
+    # Inject both here so they are persisted in the checkpoint (needed at generation
+    # time) and can never desync from the dataset.
+    if model_args.get("model_type") == "SongUNetEmbBranch":
+        emb_n = int(getattr(dataset, "embedding_n", 1))
+        model_args["emb_downscale_factor"] = emb_n
+        model_args["embedding_separate"] = emb_n > 1
+        logger0.info(
+            f"emb-branch: embedding_n={emb_n} -> emb_downscale_factor={emb_n}, "
+            f"embedding_separate={emb_n > 1}"
+        )
 
     use_torch_compile = getattr(cfg.training.perf, "torch_compile", False)
     use_apex_gn = getattr(cfg.training.perf, "use_apex_gn", False)
@@ -512,7 +540,7 @@ def main(cfg: DictConfig) -> None:
             **loss_init_kwargs,
         )
     elif cfg.model.name == "regression" or cfg.model.name == "lt_aware_regression":
-        loss_fn = RegressionLoss()
+        loss_fn = EmbRegressionLoss() if emb_separate else RegressionLoss()
     elif cfg.model.name == "lt_aware_ce_regression":
         loss_fn = RegressionLossCE(prob_channels=prob_channels)
 
@@ -581,9 +609,18 @@ def main(cfg: DictConfig) -> None:
                             f"accumulation round {n_i}", color="Magenta"
                         ):
                             with nvtx.annotate("loading data", color="green"):
-                                img_clean, img_lr, *lead_time_label = next(
-                                    dataset_iterator
-                                )
+                                batch = next(dataset_iterator)
+                                if emb_separate:
+                                    img_clean, img_lr, img_emb, *lead_time_label = batch
+                                else:
+                                    img_clean, img_lr, *lead_time_label = batch
+                                    img_emb = None
+                                if img_emb is not None:
+                                    img_emb = (
+                                        img_emb.to(dist.device)
+                                        .to(input_dtype)
+                                        .contiguous()
+                                    )
                                 if use_apex_gn:
                                     img_clean = img_clean.to(
                                         dist.device,
@@ -612,6 +649,8 @@ def main(cfg: DictConfig) -> None:
                                 "img_lr": img_lr,
                                 "augment_pipe": None,
                             }
+                            if img_emb is not None:
+                                loss_fn_kwargs["embedding"] = img_emb
                             if use_patch_grad_acc is not None:
                                 loss_fn_kwargs["use_patch_grad_acc"] = (
                                     use_patch_grad_acc
@@ -727,11 +766,27 @@ def main(cfg: DictConfig) -> None:
                         ):
                             with torch.no_grad():
                                 for _ in range(cfg.training.io.validation_steps):
-                                    (
-                                        img_clean_valid,
-                                        img_lr_valid,
-                                        *lead_time_label_valid,
-                                    ) = next(validation_dataset_iterator)
+                                    batch_valid = next(validation_dataset_iterator)
+                                    if emb_separate:
+                                        (
+                                            img_clean_valid,
+                                            img_lr_valid,
+                                            img_emb_valid,
+                                            *lead_time_label_valid,
+                                        ) = batch_valid
+                                    else:
+                                        (
+                                            img_clean_valid,
+                                            img_lr_valid,
+                                            *lead_time_label_valid,
+                                        ) = batch_valid
+                                        img_emb_valid = None
+                                    if img_emb_valid is not None:
+                                        img_emb_valid = (
+                                            img_emb_valid.to(dist.device)
+                                            .to(input_dtype)
+                                            .contiguous()
+                                        )
 
                                     if use_apex_gn:
                                         img_clean_valid = img_clean_valid.to(
@@ -770,6 +825,8 @@ def main(cfg: DictConfig) -> None:
                                         "img_lr": img_lr_valid,
                                         "augment_pipe": None,
                                     }
+                                    if img_emb_valid is not None:
+                                        loss_valid_kwargs["embedding"] = img_emb_valid
                                     if use_patch_grad_acc is not None:
                                         loss_valid_kwargs["use_patch_grad_acc"] = (
                                             use_patch_grad_acc

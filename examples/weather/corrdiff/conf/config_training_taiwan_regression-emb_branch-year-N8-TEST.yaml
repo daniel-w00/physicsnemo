@@ -1,0 +1,78 @@
+# SPDX-FileCopyrightText: Copyright (c) 2023 - 2025 NVIDIA CORPORATION & AFFILIATES.
+# SPDX-License-Identifier: Apache-2.0
+
+# SMOKE TEST for the OLMO N8 separate-tensor emb-branch path. Same model/dataset
+# wiring as config_training_taiwan_regression-emb_branch-year-N8.yaml but:
+#   - v1_static (ONE 2019 field) so startup loads a single ~6.6 GB embedding
+#     instead of 3 years -> fast, low CPU memory.
+#   - tiny training_duration + one validation pass: confirms the full pipeline
+#     (dataset 3-tuple -> EmbRegressionLoss -> precond -> pixel_unshuffle branch)
+#     runs end-to-end on real data for a handful of samples.
+#   - dataloader_workers: 0 (CRITICAL): the resident 6.6 GB/year embedding must
+#     NOT be fork-duplicated across worker processes.
+# Delete this file once the test passes.
+
+hydra:
+    job:
+          chdir: false
+          name: taiwan_regression_olmo_N8_TEST
+    run:
+          dir: ./output/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+defaults:
+    - dataset: cwb
+    - model: regression
+    - model_size: normal
+    - training: ${model}
+    - val_times_2021@_val_times
+
+dataset:
+    data_path: /data/cwa_dataset.zarr
+    out_channels: [0, 1, 2, 3]
+    embedding_source: olmo
+    embedding_version: v1_static     # single fixed-year field (fast/light for the test)
+    embedding_static_year: 2019
+    embedding_root: /home/vault/b214cb/b214cb18/regrid2
+    embedding_n: 8                   # single knob: n>1 -> separate tensor + pixel_unshuffle(n)
+    embedding_masked: true
+
+model:
+    embed: olmo
+    embed_version: v2_year_branch_N8_TEST
+    model_args:
+        "N_grid_channels": 4
+        "embedding_type": "zero"
+        "model_type": "SongUNetEmbBranch"
+        "alpha_earth_channels": 128
+        "emb_branch_channels": 64
+
+training:
+    hp:
+        training_duration: 24            # images; total_batch_size=2 -> ~12 steps
+        lr_rampup: 10
+        total_batch_size: 2              # = batch_size_per_gpu * NUM_GPUS (1 GPU) -> no grad accum
+        batch_size_per_gpu: 1            # N8 is ~6.6 GB/sample at the branch input
+    io:
+        print_progress_freq: 2
+        validation_freq: 12              # validate once mid-run
+        validation_steps: 2
+        save_n_recent_checkpoints: 1
+        checkpoint_dir: /checkpoints/taiwan/olmo_N8_TEST
+        save_checkpoint_freq: 1_000_000  # effectively never during the test
+    perf:
+        torch_compile: false
+        dataloader_workers: 0            # CRITICAL: do not fork-copy the resident N8 field
+
+validation:
+    train: false
+    all_times: false
+    include_times: ${_val_times.times}
+
+wandb:
+    mode: offline                        # no network dependency for the smoke test
+    results_dir: "./wandb"
+    watch_model: false
+    resume_id: null
+    tags: [olmo, N8, test]

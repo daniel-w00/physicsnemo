@@ -288,6 +288,8 @@ generation smoke run on a 2020 + 2021 timestamp.
   only 2018 & 2021 alpha-eu files exist; `v2_year` on a 2018-2020 train split will
   raise until 2019/2020 are regridded.
 * **N8**: not just a config flip — 3600×3600 needs a downsampling/encoder stage.
+  **Done** — implemented as a separate-tensor + `pixel_unshuffle(8)` branch
+  front-end; see [n8-integrate.md](n8-integrate.md).
 
 ---
 

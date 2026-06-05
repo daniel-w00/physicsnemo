@@ -1,0 +1,101 @@
+# SPDX-FileCopyrightText: Copyright (c) 2023 - 2025 NVIDIA CORPORATION & AFFILIATES.
+# SPDX-FileCopyrightText: All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Taiwan regression with YEAR-MATCHED OLMO N8 embeddings, dual-branch model.
+# Like config_training_taiwan_regression-emb_branch-year.yaml but for the N8
+# stores (olmo_<year>_N8_masked.zarr, 128ch, 3600x3600 = 8x8 sub-pixels per
+# weather cell). The embedding is delivered as a SEPARATE tensor (it cannot share
+# the 448x448 grid) and the branch folds the 8x8 sub-pixels into channels via
+# pixel_unshuffle(8) so the model can LEARN the intra-cell variation.
+#
+# To switch to Alpha N8 set dataset.embedding_source: alpha and
+# model.model_args.alpha_earth_channels: 64. For Europa set
+# dataset.embedding_region: europa.
+
+hydra:
+    job:
+          chdir: false
+          name: taiwan_regression_olmo_v2_year_branch_N8
+    run:
+          dir: ./output/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+defaults:
+    - dataset: cwb
+    - model: regression
+    - model_size: normal
+    - training: ${model}
+    - val_times_2021@_val_times
+
+# Year-matched OLMO N8 embeddings (registry resolves region/channels).
+dataset:
+    data_path: /data/cwa_dataset.zarr
+    out_channels: [0, 1, 2, 3]
+    embedding_source: olmo          # OLMO = 128 channels (alpha = 64)
+    embedding_version: v2_year
+    embedding_root: /home/vault/b214cb/b214cb18/regrid2
+    embedding_n: 8                  # N8: 3600x3600 = 8x8 sub-pixels per weather cell.
+                                    # SINGLE source of truth: n>1 auto-enables the
+                                    # separate-tensor delivery and sets the model's
+                                    # pixel_unshuffle factor (see train.py).
+    embedding_masked: true          # use olmo_<year>_N8_masked.zarr (NaN over ocean -> 0)
+
+# Model: dual-branch architecture with pixel_unshuffle(n) front-end on the
+# separate N8 embedding tensor; fusion before the first downsampling is unchanged.
+# emb_downscale_factor and embedding_separate are derived from dataset.embedding_n.
+model:
+    embed: olmo                     # none | alpha | olmo
+    embed_version: v2_year_branch_N8
+    model_args:
+        "N_grid_channels": 4
+        "embedding_type": "zero"      # diffusion NOISE embedding (zero for regression); unrelated to OLMO
+        "model_type": "SongUNetEmbBranch"
+        "alpha_earth_channels": 128   # OLMO embedding channels (alpha = 64)
+        "emb_branch_channels": 64     # output channels of the parallel CNN branch
+
+# Training parameters
+training:
+    hp:
+        training_duration: 2_000_000
+        lr_rampup: 10_000
+        total_batch_size: 256
+        # N8 is heavy (~6.6 GB/sample at the branch input). Start small and raise
+        # only if GPU memory allows.
+        batch_size_per_gpu: 1
+    io:
+      print_progress_freq: 4000
+      save_n_recent_checkpoints: 15
+      checkpoint_dir: /checkpoints/taiwan/olmo-v2_year_branch_N8
+      save_checkpoint_freq: 100_000
+    perf:
+      torch_compile: false
+      dataloader_workers: 0   # CRITICAL: each worker would fork-copy the resident ~6.6 GB/year N8 fields
+
+# N8 fields are held resident per year (~6.6 GB each). Keep dataloader workers low
+# to avoid per-worker duplication of those large tensors.
+validation:
+    train: false
+    all_times: false
+    include_times: ${_val_times.times}
+
+# Parameters for wandb logging
+wandb:
+    mode: online
+    results_dir: "./wandb"
+    watch_model: false
+    resume_id: null
+    tags: [olmo, v2_year, branch, N8]
