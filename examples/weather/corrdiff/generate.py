@@ -107,6 +107,14 @@ def main(cfg: DictConfig) -> None:
     # the regression/diffusion net calls below (see _EmbInjector).
     emb_separate = bool(getattr(dataset, "embedding_separate", False))
 
+    # STATIC separate embedding (e.g. static-year N8): identical for every sample,
+    # so the dataset does NOT return it per-sample (that would pipe ~3.3 GB through
+    # the DataLoader each step). It is exposed once here; held resident on-device
+    # and broadcast over each batch below. None for the year-matched path.
+    static_emb = getattr(dataset, "static_embedding", None)
+    if static_emb is not None:
+        static_emb = static_emb.to(dist.device)
+
     # Parse the patch shape
     if cfg.generation.patching:
         patch_shape_x = cfg.generation.patch_shape_x
@@ -416,11 +424,19 @@ def main(cfg: DictConfig) -> None:
                 sampler,
                 iter(data_loader),
             ):
-                if emb_separate:
+                if emb_separate and static_emb is None:
+                    # Year-matched separate: embedding varies per sample (3rd item).
                     image_tar, image_lr, image_embedding, *lead_time_label = batch
                 else:
+                    # Concat / none / static-separate: weather-only batch.
                     image_tar, image_lr, *lead_time_label = batch
                     image_embedding = None
+                if image_embedding is None and static_emb is not None:
+                    # Broadcast the resident static embedding over this batch
+                    # (view; no copy/transfer). image_lr is (B, C, H, W).
+                    image_embedding = static_emb.unsqueeze(0).expand(
+                        image_lr.shape[0], *static_emb.shape
+                    )
                 time_index += 1
                 if dist.rank == 0:
                     logger0.info(f"starting index: {time_index}")

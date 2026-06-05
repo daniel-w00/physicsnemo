@@ -56,7 +56,7 @@ TYPHOON_TIMES = [
 
 def load_valid_times_2021(data_path: str) -> np.ndarray:
     """Open the zarr store and return an array of valid timestamps in 2021."""
-    group = zarr.open_consolidated(data_path)
+    group = zarr.open_consolidated(data_path, mode="r")
 
     cwb_valid = np.asarray(group["cwb_valid"][:]) != 0
     era5_valid = np.asarray(group["era5_valid"][:]) != 0

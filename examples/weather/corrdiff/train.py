@@ -230,6 +230,18 @@ def main(cfg: DictConfig) -> None:
             "dedicated embedding tensor to the model; using emb-aware loss wrappers."
         )
 
+    # STATIC separate embedding (e.g. static-year N8): identical for every sample,
+    # so it is NOT delivered per-sample via the DataLoader (that pipes ~3.3 GB
+    # through worker IPC + host->GPU every step and starves the GPUs). The dataset
+    # exposes it once here; we hold it GPU-resident and broadcast it over each
+    # batch (a view, no per-step copy/transfer). None for the year-matched path.
+    static_emb = getattr(dataset, "static_embedding", None)
+    if static_emb is not None:
+        logger0.info(
+            f"Static separate embedding {tuple(static_emb.shape)} held GPU-resident "
+            "(broadcast per batch, not piped through the DataLoader)."
+        )
+
     # Parse image configuration & update model args
     dataset_channels = len(dataset.input_channels())
     img_in_channels = dataset_channels
@@ -585,6 +597,11 @@ def main(cfg: DictConfig) -> None:
     elif fp16:
         input_dtype = torch.float16
 
+    # Move the static separate embedding to the GPU exactly once (resident).
+    # Per step it is broadcast over the batch via .expand (a view, no copy).
+    if static_emb is not None:
+        static_emb = static_emb.to(dist.device).to(input_dtype).contiguous()
+
     # enable profiler:
     with cuda_profiler():
         with profiler_emit_nvtx():
@@ -610,9 +627,13 @@ def main(cfg: DictConfig) -> None:
                         ):
                             with nvtx.annotate("loading data", color="green"):
                                 batch = next(dataset_iterator)
-                                if emb_separate:
+                                if emb_separate and static_emb is None:
+                                    # Year-matched separate path: embedding varies
+                                    # per sample, delivered as the 3rd batch item.
                                     img_clean, img_lr, img_emb, *lead_time_label = batch
                                 else:
+                                    # Concat, no-embedding, OR static-separate path
+                                    # (the dataset returns weather-only here).
                                     img_clean, img_lr, *lead_time_label = batch
                                     img_emb = None
                                 if img_emb is not None:
@@ -620,6 +641,12 @@ def main(cfg: DictConfig) -> None:
                                         img_emb.to(dist.device)
                                         .to(input_dtype)
                                         .contiguous()
+                                    )
+                                elif static_emb is not None:
+                                    # Broadcast the GPU-resident static embedding
+                                    # over this batch (view; no copy, no transfer).
+                                    img_emb = static_emb.unsqueeze(0).expand(
+                                        img_clean.shape[0], *static_emb.shape
                                     )
                                 if use_apex_gn:
                                     img_clean = img_clean.to(
@@ -767,7 +794,8 @@ def main(cfg: DictConfig) -> None:
                             with torch.no_grad():
                                 for _ in range(cfg.training.io.validation_steps):
                                     batch_valid = next(validation_dataset_iterator)
-                                    if emb_separate:
+                                    if emb_separate and static_emb is None:
+                                        # Year-matched separate: 3rd item per sample.
                                         (
                                             img_clean_valid,
                                             img_lr_valid,
@@ -775,6 +803,7 @@ def main(cfg: DictConfig) -> None:
                                             *lead_time_label_valid,
                                         ) = batch_valid
                                     else:
+                                        # Concat / none / static-separate: weather-only.
                                         (
                                             img_clean_valid,
                                             img_lr_valid,
@@ -786,6 +815,11 @@ def main(cfg: DictConfig) -> None:
                                             img_emb_valid.to(dist.device)
                                             .to(input_dtype)
                                             .contiguous()
+                                        )
+                                    elif static_emb is not None:
+                                        # Broadcast the resident static embedding.
+                                        img_emb_valid = static_emb.unsqueeze(0).expand(
+                                            img_clean_valid.shape[0], *static_emb.shape
                                         )
 
                                     if use_apex_gn:

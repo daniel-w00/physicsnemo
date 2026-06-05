@@ -1,0 +1,19 @@
+# @package _global_
+# Shared generation knobs for every exp_static2019_1_reg run.
+# Regression-only, single GPU (NetCDF writer). The model architecture is
+# restored from the checkpoint metadata, so no model: block is needed here.
+# checkpoint / output paths are injected by the submit script on the CLI.
+dataset:
+  train: false
+  all_times: true                        # disable year filter; explicit `times` list selects what to generate
+generation:
+  num_ensembles: 1
+  seed_batch_size: 1
+  hr_mean_conditioning: false
+  inference_mode: regression
+  save_input: false                      # do NOT store input data in the NetCDF
+  times_range: null
+  times: ${_test_times.times}            # default = test split; year mode overrides generation.times on the CLI
+wandb:
+  mode: offline
+  results_dir: "./wandb"

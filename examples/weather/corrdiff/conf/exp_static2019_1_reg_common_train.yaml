@@ -1,0 +1,28 @@
+# @package _global_
+# Shared training knobs for every exp_static2019_1_reg regression run.
+# Per-run YAMLs add only what differs (dataset / embedding / model arch / N).
+# Bookkeeping (checkpoint_dir) is injected by the submit script on the CLI so
+# these configs stay version-agnostic.
+training:
+  hp:
+    training_duration: 2_000_000
+    lr_rampup: 50_000
+    total_batch_size: 256
+    batch_size_per_gpu: 4
+  io:
+    print_progress_freq: 4000
+    save_checkpoint_freq: 200_000        # + save_n_recent_checkpoints: 11 => keep last 11
+    save_n_recent_checkpoints: 11
+# NOTE: this file is `# @package _global_`, which Hydra 1.3 merges AFTER `_self_`,
+# so per-run configs CANNOT override keys set here. Per-run-varying knobs
+# (training.perf.torch_compile, training.perf.dataloader_workers) are therefore
+# deliberately NOT set here — each run config sets them itself (no conflict).
+validation:
+  train: false
+  all_times: false
+  include_times: ${_val_times.times}     # curated 256 val timestamps (conf/val_times_2021.yaml)
+wandb:
+  mode: online
+  results_dir: "./wandb"
+  watch_model: false
+  resume_id: null

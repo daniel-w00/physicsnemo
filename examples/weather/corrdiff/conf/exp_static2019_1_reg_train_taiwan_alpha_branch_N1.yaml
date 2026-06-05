@@ -1,0 +1,38 @@
+# exp_static2019_1_reg :: train :: taiwan_alpha_branch_N1
+# region=cwb embed=alpha arch=branch N=1 (static 2019 embedding).
+# Lives at conf root (not a subdir) so `dataset:` group defaults and
+# HydraConfig.runtime.choices.dataset (train.py:133) resolve natively.
+hydra:
+  job:
+    chdir: false
+    name: exp_static2019_1_reg_taiwan_alpha_branch_N1
+  run:
+    dir: ./output/${hydra:job.name}
+  searchpath:
+    - pkg://conf/base
+defaults:
+  - dataset: cwb
+  - model: regression
+  - model_size: normal
+  - training: ${model}
+  - val_times_2021@_val_times
+  - exp_static2019_1_reg_common_train
+  - _self_
+dataset:
+  data_path: /data/cwa_dataset.zarr
+  embedding_path: /home/vault/b214cb/b214cb18/regrid2/alpha/zarr/gcs_2019_N1.zarr
+  embedding_n: 1
+model:
+  embed: alpha
+  embed_version: static2019_branch_N1
+  model_args:
+    N_grid_channels: 4
+    embedding_type: zero
+    model_type: SongUNetEmbBranch
+    alpha_earth_channels: 64
+    emb_branch_channels: 64
+training:
+  perf:
+    torch_compile: false
+wandb:
+  tags: [exp_static2019_1_reg, taiwan, alpha, branch, N1, static2019]

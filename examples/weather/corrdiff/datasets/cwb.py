@@ -773,20 +773,44 @@ class ZarrDataset(DownscalingDataset):
         emb = None
         if self._year_emb is not None:
             emb = self._year_emb[self._sample_years[idx]]
-        elif self._static_emb is not None:
+        elif self._static_emb is not None and not self.embedding_separate:
+            # Concat path: static embedding rides inside `input` (small, N1).
             emb = self._static_emb
+        # NOTE: the static + SEPARATE case (e.g. static-year N8) deliberately does
+        # NOT attach the embedding here. That tensor is identical for every sample
+        # (~3.3 GB for N8); returning it per-sample would pipe it through the
+        # DataLoader (worker IPC + host->GPU) on every step and starve the GPUs.
+        # Instead it is exposed once via the `static_embedding` property and the
+        # training loop holds it GPU-resident, broadcasting it over the batch.
 
         if emb is not None:
             if self.embedding_separate:
-                # SEPARATE path (e.g. N8): keep `input` weather-only and hand the
-                # embedding back as a 3rd item; the emb-branch model receives it
-                # via an `embedding=` kwarg (pixel_unshuffle front-end).
+                # SEPARATE path with a per-sample-VARYING embedding (year-matched):
+                # keep `input` weather-only and hand the embedding back as a 3rd
+                # item; the emb-branch model receives it via an `embedding=` kwarg.
                 return target, input, emb
             # LEGACY concat path (N1): append embedding as extra input channels;
             # the model splits the trailing channels back off (unchanged).
             input = torch.cat([input, emb], dim=0)
 
         return target, input
+
+    @property
+    def static_embedding(self):
+        """Resident (C, H, W) embedding for the static + SEPARATE case, or None.
+
+        When the separate embedding is the SAME for every sample (static year,
+        e.g. the static-2019 N8 runs), it must not be piped through the DataLoader
+        per sample. The training loop reads this once, moves it to the GPU, and
+        broadcasts it over the batch. Returns None for the year-matched path
+        (which genuinely varies per sample and is delivered via __getitem__)."""
+        if (
+            self.embedding_separate
+            and self._static_emb is not None
+            and self._year_emb is None
+        ):
+            return self._static_emb
+        return None
 
     def input_channels(self):
         """Metadata for the input channels. A list of dictionaries, one for each channel.

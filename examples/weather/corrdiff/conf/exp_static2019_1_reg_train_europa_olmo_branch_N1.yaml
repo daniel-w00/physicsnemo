@@ -1,0 +1,38 @@
+# exp_static2019_1_reg :: train :: europa_olmo_branch_N1
+# region=europa embed=olmo arch=branch N=1 (static 2019 embedding).
+# Lives at conf root (not a subdir) so `dataset:` group defaults and
+# HydraConfig.runtime.choices.dataset (train.py:133) resolve natively.
+hydra:
+  job:
+    chdir: false
+    name: exp_static2019_1_reg_europa_olmo_branch_N1
+  run:
+    dir: ./output/${hydra:job.name}
+  searchpath:
+    - pkg://conf/base
+defaults:
+  - dataset: europa
+  - model: regression
+  - model_size: normal
+  - training: ${model}
+  - val_times_2021@_val_times
+  - exp_static2019_1_reg_common_train
+  - _self_
+dataset:
+  data_path: /anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr
+  embedding_path: /home/vault/b214cb/b214cb18/regrid2/olmo/zarr/olmo_eu_2019_N1_masked.zarr
+  embedding_n: 1
+model:
+  embed: olmo
+  embed_version: static2019_branch_N1
+  model_args:
+    N_grid_channels: 4
+    embedding_type: zero
+    model_type: SongUNetEmbBranch
+    alpha_earth_channels: 128
+    emb_branch_channels: 64
+training:
+  perf:
+    torch_compile: false
+wandb:
+  tags: [exp_static2019_1_reg, europa, olmo, branch, N1, static2019]

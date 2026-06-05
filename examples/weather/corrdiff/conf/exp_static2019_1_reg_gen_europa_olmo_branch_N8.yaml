@@ -1,0 +1,21 @@
+# exp_static2019_1_reg :: generate :: europa_olmo_branch_N8
+# Regression-only, single GPU. Model rebuilt from checkpoint (no model_args).
+hydra:
+  job:
+    chdir: false
+    name: gen_exp_static2019_1_reg_europa_olmo_branch_N8
+  run:
+    dir: ./outputs/${hydra:job.name}
+  searchpath:
+    - pkg://conf/base
+defaults:
+  - dataset: europa
+  - generation: non_patched
+  - test_times_2021@_test_times
+  - exp_static2019_1_reg_year2021_random1400@_year_times
+  - exp_static2019_1_reg_common_gen
+  - _self_
+dataset:
+  data_path: /anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr
+  embedding_path: /home/vault/b214cb/b214cb18/regrid2/olmo/zarr/olmo_eu_2019_N8_masked.zarr
+  embedding_n: 8
