@@ -33,6 +33,16 @@ from physicsnemo.experimental.models.diffusion.preconditioning import (
 )
 from physicsnemo.utils.patching import GridPatching2D
 from physicsnemo import Module
+from physicsnemo.models.diffusion import UNet
+
+# Register local model extensions into physicsnemo so the UNet wrapper can resolve
+# them when loading checkpoints (mirror of the block in train.py). Without this,
+# Module.from_checkpoint on an emb-branch regression checkpoint fails with
+# "Model type 'SongUNetEmbBranch' is not supported".
+import physicsnemo.models.diffusion as _diffusion_module
+from models.song_unet_emb_branch import SongUNetEmbBranch as _SongUNetEmbBranch
+_diffusion_module.SongUNetEmbBranch = _SongUNetEmbBranch
+UNet._wrapped_classes = UNet._wrapped_classes | {"SongUNetEmbBranch"}
 from physicsnemo.utils.diffusion import deterministic_sampler, stochastic_sampler
 from physicsnemo.utils.corrdiff import (
     NetCDFWriter,

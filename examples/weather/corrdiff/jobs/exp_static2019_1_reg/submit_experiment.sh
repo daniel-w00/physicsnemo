@@ -37,14 +37,23 @@ for r in "${ALL_RUNS[@]}"; do
   esac
 done
 
-# constraint per run: empty for N1, a100_80 for N8 (train + generate).
+# TRAIN constraint per run: a100_80 for N8 AND for *_branch_N1.
+#   - N8: ~6.6 GB resident field + branch -> needs 80 GB.
+#   - branch_N1: the emb-branch (compile OFF per plan) peaks ~55 GB -> OOMs on a
+#     40 GB card (observed 2026-06-06). concat_N1 is fine on 40 GB (compile ON,
+#     no branch, ~24 GB), so it stays unconstrained.
+# GENERATE constraint: a100_80 only for N8 (unchanged); single-GPU regression
+# inference is light, so branch_N1 generate does NOT need the constraint.
 declare -A TR_CONSTRAINT GEN_CONSTRAINT
 for r in "${ALL_RUNS[@]}"; do
-  if [[ "$r" == *_N8 ]]; then
+  if [[ "$r" == *_N8 || "$r" == *_branch_N1 ]]; then
     TR_CONSTRAINT[$r]=a100_80
-    GEN_CONSTRAINT[$r]=a100_80
   else
     TR_CONSTRAINT[$r]=""
+  fi
+  if [[ "$r" == *_N8 ]]; then
+    GEN_CONSTRAINT[$r]=a100_80
+  else
     GEN_CONSTRAINT[$r]=""
   fi
 done
