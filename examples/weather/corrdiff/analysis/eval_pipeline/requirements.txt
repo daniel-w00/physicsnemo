@@ -1,0 +1,12 @@
+# Dependencies for the offline evaluation pipeline.
+# torch is used only as a CPU tensor backend for the core accumulators.
+#   pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch
+numpy
+xarray
+netcdf4        # NetCDF4/HDF5 backend for xarray (scipy engine fails on these files)
+matplotlib
+pandas
+pyyaml         # optional --config support
+wandb          # optional --wandb logging
+# cartopy      # optional: georeferenced coastlines/borders in event maps (falls back to pcolormesh)

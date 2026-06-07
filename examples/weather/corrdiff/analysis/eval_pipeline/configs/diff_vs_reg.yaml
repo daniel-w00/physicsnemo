@@ -1,0 +1,24 @@
+# Example reproducible comparison run.
+# Invoke with:  python -m analysis.eval_pipeline.run compare --config analysis/eval_pipeline/configs/diff_vs_reg.yaml
+# Any value here is overridden by an explicit CLI flag.
+
+pred_a: generated/all4ens-2021-02-02-and03-1week-3h.nc
+name_a: diffusion
+kind_a: auto            # auto | diffusion | regression
+
+pred_b: generated/alphav1-reg-comp2021_3h.nc
+name_b: regression
+kind_b: regression
+
+# channels:             # optional subset; default = all 4 outputs + wind_speed_10m
+#   - maximum_radar_reflectivity
+#   - temperature_2m
+
+n_samples: 3
+event_times:            # forced timesteps in the spatial sample panels
+  - "2021-02-02"
+# times_yaml: conf/test_times_2021.yaml   # or pull curated event times from an existing YAML
+
+# wandb: true
+# wandb_project: corrdiff-eval
+# wandb_group: static-2019-vs-reg
