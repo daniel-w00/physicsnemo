@@ -1,7 +1,9 @@
+
+
 # CorrDiff Evaluation Pipeline
 
 Offline evaluation of CorrDiff generation outputs (`.nc` files). Scores a single model or
-compares two, using the **core metric/plot engine in `core/`** (the reference CorrDiff
+compares two or more, using the **core metric/plot engine in `core/`** (the reference CorrDiff
 implementations, vendored unchanged) as the source of truth. Writes metrics + plots to disk
 and, optionally, logs them to **wandb**.
 
@@ -22,10 +24,11 @@ Run as a module **from the corrdiff repo root** (so `analysis` is importable):
 python -m analysis.eval_pipeline.run single \
     --pred generated/all4ens-2021-02-02-and03-1week-3h.nc --name diffusion
 
-# Compare two files
+# Compare two or more files (repeat --pred/--name/--kind; matched by position)
 python -m analysis.eval_pipeline.run compare \
-    --pred-a generated/all4ens-2021-02-02-and03-1week-3h.nc --name-a diffusion \
-    --pred-b generated/alphav1-reg-comp2021_3h.nc           --name-b regression
+    --pred generated/all4ens-2021-02-02-and03-1week-3h.nc --name diffusion \
+    --pred generated/alphav1-reg-comp2021_3h.nc           --name regression \
+    --pred generated/static-2019.nc                       --name static-2019
 
 # Reproducible run from a YAML config (CLI flags override config values)
 python -m analysis.eval_pipeline.run compare \
@@ -79,13 +82,15 @@ this also disables the `clamp(min=0)` that would corrupt the signed wind compone
 - **Event panels** `event_<stamp>.png` — truth / ensemble mean / spread maps per variable.
 - **Comparison** (`compare`): `compare_rapsd.png`, `compare_distributions.png`,
   `compare_spread_skill.png`, `compare_metric_bars.png`, `compare_spatial_<stamp>.png`,
-  plus `metrics_comparison.csv`.
+  plus `metrics_comparison.csv`. All overlay 2+ models on one figure (the first model is
+  the reference for truth, grid, and event-timestep selection); the metric table gets one
+  column per model.
 
 ## Output layout
 
 ```
 results/<stem>/                      # single
     metrics.json   metrics.csv   plots/*.png
-results/<stemA>_vs_<stemB>/          # compare
+results/<stemA>_vs_<stemB>[_vs_...]/  # compare (2+ models; long names are shortened)
     metrics_comparison.csv   plots/*.png
 ```

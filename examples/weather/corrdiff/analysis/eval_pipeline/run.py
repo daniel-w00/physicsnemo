@@ -5,9 +5,9 @@ Run from the corrdiff repo root::
     # Single file (primary path)
     python -m analysis.eval_pipeline.run single --pred FILE.nc --name diffusion
 
-    # Compare two files
+    # Compare two or more files (repeat --pred/--name/--kind, positionally matched)
     python -m analysis.eval_pipeline.run compare \
-        --pred-a A.nc --name-a diffusion --pred-b B.nc --name-b regression
+        --pred A.nc --name diffusion --pred B.nc --name regression --pred C.nc --name static
 
     # Reproducible run from a YAML config (CLI flags override config values)
     python -m analysis.eval_pipeline.run compare --config analysis/eval_pipeline/configs/diff_vs_reg.yaml
@@ -56,12 +56,14 @@ def _build_parser() -> argparse.ArgumentParser:
                    help="Model kind (default: auto-detect from ensemble size).")
     _add_common(s)
 
-    c = sub.add_parser("compare", help="Compare two generated files.")
-    for sfx in ("a", "b"):
-        c.add_argument(f"--pred-{sfx}", default=None, dest=f"pred_{sfx}")
-        c.add_argument(f"--name-{sfx}", default=None, dest=f"name_{sfx}")
-        c.add_argument(f"--kind-{sfx}", default=None, dest=f"kind_{sfx}",
-                       choices=["auto", "diffusion", "regression"])
+    c = sub.add_parser("compare", help="Compare two or more generated files.")
+    c.add_argument("--pred", action="append", default=None, dest="preds",
+                   help="Path to a generated .nc file (repeat for each model).")
+    c.add_argument("--name", action="append", default=None, dest="names",
+                   help="Display name, positionally matched to --pred (repeatable).")
+    c.add_argument("--kind", action="append", default=None, dest="kinds",
+                   choices=["auto", "diffusion", "regression"],
+                   help="Model kind, positionally matched to --pred (repeatable).")
     _add_common(c)
     return parser
 
@@ -109,12 +111,15 @@ def main(argv=None):
                 channel_names=channels, n_samples=n_samples, event_times=event_times, wb=wb,
             )
         else:  # compare
-            _require(cfg, ["pred_a", "name_a", "pred_b", "name_b"])
-            wb = _make_wandb(cfg, f"{cfg['name_a']}_vs_{cfg['name_b']}")
+            models = config_mod.resolve_models(cfg)
+            if len(models) < 2:
+                raise SystemExit(
+                    "compare needs at least 2 models — pass --pred/--name twice, "
+                    "or a models: list / pred_a+pred_b in the config."
+                )
+            wb = _make_wandb(cfg, "_vs_".join(m["name"] for m in models))
             compare_mod.run_compare(
-                cfg["pred_a"], cfg["name_a"], cfg.get("kind_a") or "auto",
-                cfg["pred_b"], cfg["name_b"], cfg.get("kind_b") or "auto",
-                outdir, channel_names=channels, n_samples=n_samples,
+                models, outdir, channel_names=channels, n_samples=n_samples,
                 event_times=event_times, wb=wb,
             )
     finally:

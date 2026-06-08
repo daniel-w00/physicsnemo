@@ -2,13 +2,25 @@
 # Invoke with:  python -m analysis.eval_pipeline.run compare --config analysis/eval_pipeline/configs/diff_vs_reg.yaml
 # Any value here is overridden by an explicit CLI flag.
 
-pred_a: generated/all4ens-2021-02-02-and03-1week-3h.nc
-name_a: diffusion
-kind_a: auto            # auto | diffusion | regression
+# Preferred form: a list of models (2 or more). The first is the reference for
+# truth, grid, and event-timestep selection.
+models:
+  - pred: generated/all4ens-2021-02-02-and03-1week-3h.nc
+    name: diffusion
+    kind: auto           # auto | diffusion | regression
+  - pred: generated/alphav1-reg-comp2021_3h.nc
+    name: regression
+    kind: regression
+  # - pred: generated/static-2019.nc
+  #   name: static-2019
 
-pred_b: generated/alphav1-reg-comp2021_3h.nc
-name_b: regression
-kind_b: regression
+# Legacy two-file form (still supported):
+# pred_a: generated/all4ens-2021-02-02-and03-1week-3h.nc
+# name_a: diffusion
+# kind_a: auto
+# pred_b: generated/alphav1-reg-comp2021_3h.nc
+# name_b: regression
+# kind_b: regression
 
 # channels:             # optional subset; default = all 4 outputs + wind_speed_10m
 #   - maximum_radar_reflectivity
