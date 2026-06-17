@@ -85,6 +85,17 @@ this also disables the `clamp(min=0)` that would corrupt the signed wind compone
   plus `metrics_comparison.csv`. All overlay 2+ models on one figure (the first model is
   the reference for truth, grid, and event-timestep selection); the metric table gets one
   column per model.
+- **Comparison extras**: `compare_rapsd_ratio.png` — model PSD ÷ truth PSD on a linear
+  axis (perfect = 1.0; shows per-scale power deficits the log-log overlay hides);
+  `compare_qq.png` — model vs truth quantiles per variable (perfect = diagonal;
+  magnifies tail/extreme differences); `compare_delta_heatmap.png` — RMSE/MAE Δ% per model relative to
+  the model named `baseline` (falls back to the reference), red = worse;
+  `compare_error_maps_<var>.png` — per-pixel time-mean bias, RMSE, and ΔRMSE-vs-baseline
+  maps, one column per model (shows *where* on the grid models differ);
+  `compare_monthly_cycle.png` / `compare_diurnal_cycle.png` — domain-mean RMSE and bias
+  bucketed by month / hour of day. The cycle plots are controlled by
+  `--temporal-cycles {auto,on,off}` (config key `temporal_cycles`); `auto` (default)
+  skips them when the run has <50 timesteps or <2 distinct months/hours.
 
 ## Output layout
 

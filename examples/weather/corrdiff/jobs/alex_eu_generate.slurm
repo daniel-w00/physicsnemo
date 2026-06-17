@@ -22,8 +22,21 @@ echo ${CUDA_VISIBLE_DEVICES}
 
 source $HOME/.job_secrets
 
-# Europa store (zarr v3) on /anvme; bound 1:1 so the absolute path matches the config.
-EUROPA_WS=/anvme/workspace/b214cb18-ws-daniel2
+# Dataset bind is region-aware (REGION env; defaults to europa for backward compat).
+#   europa -> Würzburg store bound 1:1 (absolute path matches the config)
+#   cwb    -> Taiwan CWA store bound to /data (config uses /data/cwa_dataset.zarr)
+case "${REGION:-europa}" in
+  europa)
+    EUROPA_WS=/anvme/workspace/b214cb18-ws-daniel2
+    DATA_BIND="--bind ${EUROPA_WS}:${EUROPA_WS}"
+    ;;
+  cwb)
+    DATASET_SRC=/anvme/workspace/b214cb18-ws-daniel3/b214cb18-ws-daniel-cwb-1779073861/cwa_dataset
+    DATA_BIND="--bind ${DATASET_SRC}:/data/"
+    ;;
+  *)
+    echo "❌ unknown REGION=${REGION}" >&2; exit 1 ;;
+esac
 
 # Output directory on HPCVAULT (config writes the NetCDF here). Vault is NOT auto-mounted
 # in apptainer, so it must be bound explicitly below.
@@ -44,10 +57,11 @@ apptainer exec $CONTAINER python3 -c "import zarr; print('zarr version:', zarr._
 MASTER_PORT=$((20000 + SLURM_JOB_ID % 30000))
 
 apptainer run --nv \
-    --bind ${EUROPA_WS}:${EUROPA_WS} \
+    $DATA_BIND \
     --bind $WORK/checkpoints:/checkpoints/ \
     --bind $HPCVAULT/generated:$HPCVAULT/generated \
+    --bind $HPCVAULT/regrid2:$HPCVAULT/regrid2 \
     $CONTAINER \
-    torchrun --nproc_per_node=1 --master_port=$MASTER_PORT \
+    torchrun --nproc_per_node=${NUM_GPUS:-1} --master_port=$MASTER_PORT \
         $HOME/corrdiff/generate.py \
-        --config-name config_generate_europa-alex
+        --config-name ${CONFIG_NAME:-config_generate_europa-alex}

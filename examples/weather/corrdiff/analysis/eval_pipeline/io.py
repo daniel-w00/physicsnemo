@@ -42,8 +42,15 @@ class Channel:
         return {"label": self.label, "unit": self.unit}
 
 
+# The first stored output channel differs by region: Taiwan stores radar
+# reflectivity (dBZ), Europa stores hourly precipitation (mm). They are mutually
+# exclusive — GenerationFile swaps to whichever name the file actually contains
+# (see GenerationFile._resolve_channels), so the same default set works for both.
+RADAR = Channel("maximum_radar_reflectivity", "Radar reflectivity", "dBZ")
+PRECIP = Channel("precipitation_amount_1hr", "1h precipitation", "mm")
+
 STORED_VARS = (
-    Channel("maximum_radar_reflectivity", "Radar reflectivity", "dBZ"),
+    RADAR,
     Channel("temperature_2m", "2m temperature", "K"),
     Channel("eastward_wind_10m", "10m eastward wind", "m/s", signed=True),
     Channel("northward_wind_10m", "10m northward wind", "m/s", signed=True),
@@ -52,12 +59,15 @@ WIND_SPEED = Channel("wind_speed_10m", "10m wind speed", "m/s", derived=True)
 
 DEFAULT_CHANNELS = STORED_VARS + (WIND_SPEED,)
 
+# Region-alternate stored variables: same first slot, different name/units.
+_ALTERNATES = {RADAR.name: PRECIP, PRECIP.name: RADAR}
+
 
 def channels_by_name(names: list[str] | None) -> list[Channel]:
     """Resolve a list of channel names to Channel objects (default: all)."""
     if not names:
         return list(DEFAULT_CHANNELS)
-    lookup = {c.name: c for c in DEFAULT_CHANNELS}
+    lookup = {c.name: c for c in (*DEFAULT_CHANNELS, PRECIP)}
     missing = [n for n in names if n not in lookup]
     if missing:
         raise ValueError(
@@ -74,13 +84,16 @@ class GenerationFile:
 
     def __init__(self, path: str, channels: list[Channel] | None = None):
         self.path = path
-        self.channels = channels or list(DEFAULT_CHANNELS)
 
         self.root = xr.open_dataset(path)
         self.pred = xr.open_dataset(path, group="prediction").merge(self.root)
         self.truth = xr.open_dataset(path, group="truth").merge(self.root)
         self.pred = self.pred.set_coords(["lon", "lat"])
         self.truth = self.truth.set_coords(["lon", "lat"])
+
+        # Adapt the requested channels to the names this file actually stores
+        # (radar reflectivity ↔ precipitation across regions).
+        self.channels = self._resolve_channels(channels or list(DEFAULT_CHANNELS))
 
         self.n_time = int(self.truth.sizes["time"])
         self.n_ensemble = int(self.pred.sizes["ensemble"]) if "ensemble" in self.pred.dims else 1
@@ -93,6 +106,25 @@ class GenerationFile:
         else:
             self.lat2d, self.lon2d = lat, lon
         self.img_shape = self.lat2d.shape  # (H, W)
+
+    def _resolve_channels(self, channels: list[Channel]) -> list[Channel]:
+        """Swap stored channels to the variable names this file actually contains.
+
+        Regions store the same first slot under different names
+        (``maximum_radar_reflectivity`` for Taiwan, ``precipitation_amount_1hr``
+        for Europa). A requested stored channel that is absent but has a known
+        region-alternate present is swapped to it. Derived channels (e.g.
+        ``wind_speed_10m``) and channels already present pass through unchanged.
+        """
+        available = set(self.truth.data_vars)
+        resolved = []
+        for ch in channels:
+            if ch.derived or ch.name in available:
+                resolved.append(ch)
+                continue
+            alt = _ALTERNATES.get(ch.name)
+            resolved.append(alt if (alt is not None and alt.name in available) else ch)
+        return resolved
 
     # -- properties ------------------------------------------------------------
 

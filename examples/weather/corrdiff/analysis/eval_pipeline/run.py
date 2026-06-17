@@ -64,6 +64,10 @@ def _build_parser() -> argparse.ArgumentParser:
     c.add_argument("--kind", action="append", default=None, dest="kinds",
                    choices=["auto", "diffusion", "regression"],
                    help="Model kind, positionally matched to --pred (repeatable).")
+    c.add_argument("--temporal-cycles", default=None, dest="temporal_cycles",
+                   choices=["auto", "on", "off"],
+                   help="Monthly/diurnal cycle plots: auto skips them when the run "
+                        "covers too few timesteps (default: auto).")
     _add_common(c)
     return parser
 
@@ -121,6 +125,7 @@ def main(argv=None):
             compare_mod.run_compare(
                 models, outdir, channel_names=channels, n_samples=n_samples,
                 event_times=event_times, wb=wb,
+                temporal_cycles=cfg.get("temporal_cycles") or "auto",
             )
     finally:
         if wb is not None:

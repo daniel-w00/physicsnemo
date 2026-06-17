@@ -26,6 +26,7 @@ from analysis.eval_pipeline.core.plots import (
     plot_diagnostic_panel,
 )
 
+from analysis.eval_pipeline.fields import FieldErrorAccumulator
 from analysis.eval_pipeline.io import Channel, GenerationFile, channels_by_name
 
 # Scalar metrics tabulated in metrics.csv / the comparison table, in display order.
@@ -34,10 +35,11 @@ SCALAR_METRICS = ["rmse", "mae", "bias", "pcc", "crps", "spread", "skill", "spre
 
 @dataclasses.dataclass
 class ChannelAcc:
-    """The three trusted accumulators for one variable."""
+    """The three trusted core accumulators plus the error-field accumulator."""
     metrics: MetricsAccumulator
     hist: HistogramAccumulator
     rapsd: RAPSDAccumulator
+    fields: FieldErrorAccumulator
 
 
 @dataclasses.dataclass
@@ -82,11 +84,13 @@ def run_accumulators(
             ),
             hist=HistogramAccumulator(),
             rapsd=RAPSDAccumulator(img_shape=(H, W), dx_km=dx_km),
+            fields=FieldErrorAccumulator(img_shape=(H, W)),
         )
         for c in channels
     }
 
-    for t, _time, pred_ens, target in gf.iter_timesteps(channels):
+    for t, time, pred_ens, target in gf.iter_timesteps(channels):
+        ts = pd.Timestamp(time)
         for ci, c in enumerate(channels):
             p = pred_ens[:, ci : ci + 1]      # (N_ens, 1, H, W)
             y = target[ci : ci + 1]           # (1, H, W)
@@ -94,6 +98,7 @@ def run_accumulators(
             acc.metrics.update(p, y)
             acc.hist.update(p, y)
             acc.rapsd.update(p, y)
+            acc.fields.update(p, y, ts.month, ts.hour)
         if verbose and (t + 1) % 25 == 0:
             print(f"    ...{t + 1}/{gf.n_time} timesteps")
     return accs
@@ -119,6 +124,7 @@ def evaluate_file(
     """Run the full accumulator pass over one file and assemble an EvalResult."""
     channels = channels_by_name(channel_names)
     gf = GenerationFile(path, channels)
+    channels = gf.channels  # resolved to the file's actual variable names (radar ↔ precip)
     kind, is_ens = resolve_kind(gf, kind)
     if verbose:
         tag = f"ensemble (N={gf.n_ensemble})" if is_ens else "deterministic"
