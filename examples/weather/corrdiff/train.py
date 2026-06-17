@@ -38,6 +38,11 @@ from models.song_unet_emb_branch import SongUNetEmbBranch as _SongUNetEmbBranch
 from losses.emb_branch_losses import EmbRegressionLoss, EmbResidualLoss
 _diffusion_module.SongUNetEmbBranch = _SongUNetEmbBranch
 UNet._wrapped_classes = UNet._wrapped_classes | {"SongUNetEmbBranch"}
+# Same registration for the diffusion wrapper, so emb-branch works as the residual
+# (diffusion) backbone too — not just the regression UNet.
+EDMPrecondSuperResolution._wrapped_classes = (
+    EDMPrecondSuperResolution._wrapped_classes | {"SongUNetEmbBranch"}
+)
 from physicsnemo.distributed import DistributedManager
 from physicsnemo.metrics.diffusion import RegressionLoss, ResidualLoss, RegressionLossCE
 from physicsnemo.utils.patching import RandomPatching2D

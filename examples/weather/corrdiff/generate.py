@@ -43,6 +43,9 @@ import physicsnemo.models.diffusion as _diffusion_module
 from models.song_unet_emb_branch import SongUNetEmbBranch as _SongUNetEmbBranch
 _diffusion_module.SongUNetEmbBranch = _SongUNetEmbBranch
 UNet._wrapped_classes = UNet._wrapped_classes | {"SongUNetEmbBranch"}
+# Diffusion wrapper too, so emb-branch *diffusion* (residual) checkpoints load.
+from physicsnemo.models.diffusion import EDMPrecondSuperResolution as _EDMPrecondSR
+_EDMPrecondSR._wrapped_classes = _EDMPrecondSR._wrapped_classes | {"SongUNetEmbBranch"}
 from physicsnemo.utils.diffusion import deterministic_sampler, stochastic_sampler
 from physicsnemo.utils.corrdiff import (
     NetCDFWriter,
