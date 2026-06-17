@@ -1,0 +1,43 @@
+# Generation config: CorrDiff inference on the Europa (Würzburg) dataset, Alex
+# cluster, BASELINE diff_eu_v1 model (no embeddings) on the 64 high-impact
+# precip/wind events (conf/timestamps_top64.yaml). Twin of
+# config_generate_europa-alex.yaml but with the top64 split + model name in the
+# output filename.
+
+hydra:
+    job:
+          chdir: false
+          name: generate_europa_top64
+    run:
+          dir: ./outputs/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+defaults:
+    - dataset: europa
+    - generation: non_patched
+    - timestamps_top64@_eval_times
+    # 64 curated high-impact events (conf/timestamps_top64.yaml).
+
+dataset:
+    data_path: /anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr
+    train: False
+    all_times: True
+
+generation:
+    num_ensembles: 16
+    seed_batch_size: 16
+    hr_mean_conditioning: true
+    times_range: null
+    times: ${_eval_times.times}
+    save_input: true
+    inference_mode: all
+
+    io:
+        reg_ckpt_filename: /checkpoints/europa/reg_eu_pure_v1/checkpoints_regression/UNet.0.2000128.mdlus
+        res_ckpt_filename: /checkpoints/europa/diff_eu_v1/checkpoints_diffusion/EDMPrecondSuperResolution.0.1500160.mdlus
+        output_filename: "/home/vault/b214cb/b214cb18/generated/diff_eu_v1/diff_eu_v1_top64.nc"
+
+wandb:
+    mode: offline
+    results_dir: "./wandb"

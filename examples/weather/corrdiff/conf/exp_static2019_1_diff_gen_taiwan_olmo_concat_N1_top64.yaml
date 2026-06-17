@@ -1,0 +1,39 @@
+# exp_static2019_1_diff :: generate :: taiwan_olmo_concat_N1 :: top64
+# Full CorrDiff inference (regression mean + diffusion residual), 16 ensembles,
+# top64 split. Mirrors the Europa diffusion baseline but feeds the
+# olmo embeddings and points at this run's checkpoints.
+# embedding_path MUST be set — both reg and diffusion models were trained with it.
+hydra:
+  job:
+    chdir: false
+    name: gen_exp_static2019_1_diff_taiwan_olmo_concat_N1_top64
+  run:
+    dir: ./outputs/${hydra:job.name}
+  searchpath:
+    - pkg://conf/base
+defaults:
+  - dataset: cwb
+  - generation: non_patched
+  - timestamps_top64@_eval_times
+  - _self_
+dataset:
+  data_path: /data/cwa_dataset.zarr
+  embedding_path: /home/vault/b214cb/b214cb18/regrid2/olmo/zarr/olmo_2019_N1_masked.zarr
+  embedding_n: 1
+  train: False
+  all_times: True
+generation:
+  num_ensembles: 16
+  seed_batch_size: 16
+  hr_mean_conditioning: true
+  inference_mode: all
+  save_input: false
+  times_range: null
+  times: ${_eval_times.times}
+  io:
+    reg_ckpt_filename: /checkpoints/exp_static2019_1_reg/taiwan_olmo_concat_N1/v1/checkpoints_regression/UNet.0.2000128.mdlus
+    res_ckpt_filename: /checkpoints/exp_static2019_1_diff/taiwan_olmo_concat_N1/v1/checkpoints_diffusion/EDMPrecondSuperResolution.0.2000128.mdlus
+    output_filename: /home/vault/b214cb/b214cb18/generated/exp_static2019_1_diff/taiwan_olmo_concat_N1/taiwan_olmo_concat_N1_top64.nc
+wandb:
+  mode: offline
+  results_dir: "./wandb"

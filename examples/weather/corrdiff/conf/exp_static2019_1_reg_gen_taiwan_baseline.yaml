@@ -1,0 +1,20 @@
+# exp_static2019_1_reg :: generate :: taiwan_baseline
+# Regression-only, single GPU. Model rebuilt from checkpoint (no model_args).
+# No satellite embeddings (baseline) -> no embedding_path / embedding_n.
+hydra:
+  job:
+    chdir: false
+    name: gen_exp_static2019_1_reg_taiwan_baseline
+  run:
+    dir: ./outputs/${hydra:job.name}
+  searchpath:
+    - pkg://conf/base
+defaults:
+  - dataset: cwb
+  - generation: non_patched
+  - test_times_2021@_test_times
+  - exp_static2019_1_reg_year2021_random1400@_year_times
+  - exp_static2019_1_reg_common_gen
+  - _self_
+dataset:
+  data_path: /data/cwa_dataset.zarr

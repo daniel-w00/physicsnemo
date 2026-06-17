@@ -1,0 +1,39 @@
+# exp_static2019_1_diff :: train :: taiwan_baseline
+# DIFFUSION stage, region=cwb, NO satellite embeddings — the baseline cell, the
+# diffusion twin of exp_static2019_1_reg_train_taiwan_baseline.yaml. Trains the
+# diffusion residual on top of the no-embedding taiwan_baseline regression
+# checkpoint, so it's the apples-to-apples reference for the Taiwan embedding
+# diffusion runs (same 2M steps, hr_mean_conditioning=true, plain SongUNetPosEmbd).
+hydra:
+  job:
+    chdir: false
+    name: exp_static2019_1_diff_taiwan_baseline
+  run:
+    dir: ./output/${hydra:job.name}
+  searchpath:
+    - pkg://conf/base
+defaults:
+  - dataset: cwb
+  - model: diffusion
+  - model_size: normal
+  - training: ${model}
+  - val_times_2021@_val_times
+  - exp_static2019_1_reg_common_train
+  - _self_
+dataset:
+  data_path: /data/cwa_dataset.zarr
+  # No embeddings: embedding_path stays null / embedding_source none (cwb.yaml
+  # defaults) -> dataset logs EMBEDDINGS: OFF and the model is the default
+  # SongUNetPosEmbd diffusion UNet (no model.model_args override).
+model:
+  embed: none           # only used to compose the wandb run name (train.py)
+  embed_version: baseline
+  hr_mean_conditioning: true
+training:
+  io:
+    # No-embedding taiwan_baseline regression checkpoint (final, 2M steps).
+    regression_checkpoint_path: /checkpoints/exp_static2019_1_reg/taiwan_baseline/v1/checkpoints_regression/UNet.0.2000128.mdlus
+  perf:
+    torch_compile: true
+wandb:
+  tags: [exp_static2019_1_diff, taiwan, baseline, none, no_embed, diffusion]

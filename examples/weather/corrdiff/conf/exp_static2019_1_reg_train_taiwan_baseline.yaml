@@ -1,0 +1,38 @@
+# exp_static2019_1_reg :: train :: taiwan_baseline
+# region=cwb, NO satellite embeddings (plain regression UNet) — the ablation
+# baseline cell. Same shared knobs as the embedding runs via
+# exp_static2019_1_reg_common_train; only the dataset/region + (no) embedding
+# and torch_compile differ. Lives at conf root (not a subdir) so `dataset:`
+# group defaults and HydraConfig.runtime.choices.dataset (train.py:133) resolve
+# natively.
+hydra:
+  job:
+    chdir: false
+    name: exp_static2019_1_reg_taiwan_baseline
+  run:
+    dir: ./output/${hydra:job.name}
+  searchpath:
+    - pkg://conf/base
+defaults:
+  - dataset: cwb
+  - model: regression
+  - model_size: normal
+  - training: ${model}
+  - val_times_2021@_val_times
+  - exp_static2019_1_reg_common_train
+  - _self_
+dataset:
+  data_path: /data/cwa_dataset.zarr
+  # No embeddings: embedding_path stays null and embedding_source stays none
+  # (both are the cwb.yaml defaults) -> dataset banner logs EMBEDDINGS: OFF and
+  # the model is a plain UNet (no model.model_args override).
+model:
+  # `embed` / `embed_version` are only used to compose the wandb run name
+  # (train.py:136); set them to mark this as the no-embedding baseline.
+  embed: none
+  embed_version: baseline
+training:
+  perf:
+    torch_compile: true
+wandb:
+  tags: [exp_static2019_1_reg, taiwan, baseline, none, no_embed]

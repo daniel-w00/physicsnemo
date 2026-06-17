@@ -1,0 +1,65 @@
+# Generation config: CorrDiff REGRESSION-ONLY baseline on the Europa (Würzburg)
+# dataset, Alex cluster. Model = reg_eu_pure_v1 (pure regression, step 2000128 —
+# the .mdlus sibling of checkpoint.0.2000128.pt).
+#
+# Submitted for two splits via jobs/alex_eu_gen_baseline.slurm (TIMES_MODE):
+#   test -> conf/test_times_2021.yaml                          -> ...-test2021.nc
+#   year -> conf/exp_static2019_1_reg_year2021_random1400.yaml -> ...-year2021.nc
+
+hydra:
+    job:
+          chdir: false
+          name: generate_europa_baseline
+    run:
+          dir: ./outputs/${hydra:job.name}
+    searchpath:
+          - pkg://conf/base # Do not modify
+
+defaults:
+    - dataset: europa
+    # Europa channel layout (12 era5 in, 4 cwb out). See conf/base/dataset/europa.yaml.
+
+    - generation: non_patched
+    # Europa models are non-patched.
+
+    - test_times_2021@_test_times
+    # Held-out 256 test timestamps + 10 forced typhoon events (default split).
+
+    - exp_static2019_1_reg_year2021_random1400@_year_times
+    # Full-year sample: 1400 random valid-2021 hours. Selected when the slurm
+    # script overrides generation.times=${_year_times.times} (TIMES_MODE=year).
+
+    - _self_
+
+# Dataset overrides (Alex path). No embedding_path — Europa has no embeddings.
+dataset:
+    data_path: /anvme/workspace/b214cb18-ws-daniel2/wuerzburg450_corrdiff.zarr
+    train: False
+    all_times: True   # disable year filter; the explicit `times` list selects what to generate
+
+generation:
+    # Regression baseline: mean predictor only, no diffusion residual.
+    num_ensembles: 1
+    seed_batch_size: 1
+    hr_mean_conditioning: false   # unused for regression mode
+    inference_mode: regression    # regression mean only (no res_ckpt needed)
+
+    times_range: null
+    times: ${_test_times.times}   # default = test split; year mode overrides on the CLI
+
+    save_input: false
+    # Do NOT store the ERA5 LR input in the NetCDF — matches the exp_static2019_1_reg
+    # convention so file sizes are comparable (~2.5× smaller than save_input: true).
+
+    io:
+        reg_ckpt_filename: /checkpoints/europa/reg_eu_pure_v1/checkpoints_regression/UNet.0.2000128.mdlus
+        # Pure regression baseline checkpoint (reg_eu_pure_v1, step 2000128).
+        # Overridden on the CLI by the slurm script (RUN_NAME / CKPT_STEP).
+
+        output_filename: "/home/vault/b214cb/b214cb18/generated/europa_baseline/reg_eu_pure_v1/reg_eu_pure_v1-step2000128-test2021.nc"
+        # Overridden on the CLI by the slurm script per TIMES_MODE.
+
+# wandb not needed for generation
+wandb:
+    mode: offline
+    results_dir: "./wandb"

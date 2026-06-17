@@ -1,0 +1,37 @@
+# exp_static2019_1_diff :: train :: taiwan_alpha_concat_N1
+# DIFFUSION stage, region=cwb embed=alpha arch=concat N1 (static 2019 embedding).
+# Mirrors conf/exp_static2019_1_reg_train_taiwan_alpha_concat_N1.yaml but model=diffusion + the matching
+# embedding-trained regression checkpoint (see diffusion_with_embeddings.md).
+# NOTE: batch_size_per_gpu is pinned to 4 by exp_static2019_1_reg_common_train
+# (@package _global_); bs8 gives no speedup and doubles memory (measured 2026-06-11).
+hydra:
+  job:
+    chdir: false
+    name: exp_static2019_1_diff_taiwan_alpha_concat_N1
+  run:
+    dir: ./output/${hydra:job.name}
+  searchpath:
+    - pkg://conf/base
+defaults:
+  - dataset: cwb
+  - model: diffusion
+  - model_size: normal
+  - training: ${model}
+  - val_times_2021@_val_times
+  - exp_static2019_1_reg_common_train
+  - _self_
+dataset:
+  data_path: /data/cwa_dataset.zarr
+  embedding_path: /home/vault/b214cb/b214cb18/regrid2/alpha/zarr/gcs_2019_N1.zarr
+  embedding_n: 1
+model:
+  embed: alpha
+  embed_version: static2019_concat_N1
+  hr_mean_conditioning: true
+training:
+  io:
+    regression_checkpoint_path: /checkpoints/exp_static2019_1_reg/taiwan_alpha_concat_N1/v1/checkpoints_regression/UNet.0.2000128.mdlus
+  perf:
+    torch_compile: true
+wandb:
+  tags: [exp_static2019_1_diff, taiwan, alpha, concat, N1, static2019, diffusion]
