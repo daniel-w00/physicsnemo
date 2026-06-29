@@ -53,11 +53,12 @@ RES_CKPT = "/checkpoints/exp_static2019_1_diff/{run}/v1/checkpoints_diffusion/ED
 OUT_NC = "/home/vault/b214cb/b214cb18/generated/exp_static2019_1_diff/{run}/{run}_{split}.nc"
 
 # Evaluation timestamp splits: maps an output basename -> (conf file, default-group key).
-# "test2021" is the canonical held-out split; "top64" is the 64 high-impact precip/wind
-# events curated in timestamps_top64.csv.
+# "test2021" is the canonical held-out split; "top64_2021" is the 64 high-impact
+# precip/wind events curated in timestamps_top64_2021.csv (2021-only). It replaces the
+# earlier all-years "top64" split (timestamps_top64.csv).
 SPLITS = {
     "test2021": "test_times_2021",
-    "top64": "timestamps_top64",
+    "top64_2021": "timestamps_top64_2021",
 }
 
 
@@ -180,6 +181,9 @@ def main():
         # test2021 keeps the bare filename (backward-compatible launch name);
         # other splits get a `_<split>` suffix.
         for split in SPLITS:
+            # top64_2021 is a Europa-only evaluation split — skip Taiwan runs.
+            if split == "top64_2021" and m["region"] != "europa":
+                continue
             suffix = "" if split == "test2021" else f"_{split}"
             (CONF / f"exp_static2019_1_diff_gen_{run}{suffix}.yaml").write_text(
                 gen_cfg(run, m, split)

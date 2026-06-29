@@ -57,7 +57,7 @@ embedding_region: europa       # europa file token (gcs_eu_* / olmo_eu_*)
 embedding_root: null           # regrid root; set explicitly in each run config that enables the registry
 embedding_static_year: 2019    # used only when embedding_version: v1_static (2018/2019/2021 alpha-eu files exist)
 
-# Target normalization. See normalization_design.md for the analysis.
+# Target normalization.
 #   v1         -> read empirical center/scale from the zarr (Gaussian-ish T2
 #                 fine, but precipitation ends up ~152x T2's loss weight due
 #                 to zero-inflated std=0.667 mm; not used here).

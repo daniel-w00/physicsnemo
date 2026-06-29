@@ -1,7 +1,7 @@
 #!/bin/bash -l
 #SBATCH -J exp_static2019_1_diff_tr
 #SBATCH --ntasks=1
-#SBATCH --time=24:00:00
+#SBATCH --time=17:00:00
 #SBATCH --gres=gpu:a100:8
 #SBATCH --partition=a100
 #SBATCH --output=output/alex/jobout/job-%j.out

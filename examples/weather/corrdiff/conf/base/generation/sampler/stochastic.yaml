@@ -19,3 +19,5 @@
 type: stochastic
 num_steps: 18
 # Number of denoising steps
+S_churn: 0
+# Stochastic churn: amount of extra noise injected per step (0 = deterministic-like)

@@ -221,6 +221,7 @@ def main(cfg: DictConfig) -> None:
             stochastic_sampler,
             patching=patching,
             num_steps=getattr(cfg.sampler, "num_steps", 18),
+            S_churn=getattr(cfg.sampler, "S_churn", 0),
         )
     else:
         raise ValueError(f"Unknown sampling method {cfg.sampling.type}")
